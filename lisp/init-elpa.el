@@ -69,10 +69,10 @@ But you may use safer HTTPS instead.")
       '(;; uncomment below line if you need use GNU ELPA
         ;; ("gnu" . "https://elpa.gnu.org/packages/")
         ;; ("org" . "http://orgmode.org/elpa/") ; latest org-mode
-        ("localelpa" . "~/.emacs.d/localelpa/")
-        ("my-js2-mode" . "https://raw.githubusercontent.com/redguardtoo/js2-mode/release/")
-        ("melpa" . "https://melpa.org/packages/")
-        ("melpa-stable" . "https://stable.melpa.org/packages/")))
+        ("localelpa" . "~/.emacs.d/localelpa")
+        ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+        ("melpa-stable"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
+        ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")))
 
 ;; Un-comment below line if your extract https://github.com/redguardtoo/myelpa/archive/master.zip into ~/myelpa/
 ;; (setq package-archives '(("myelpa" . "~/myelpa")))
