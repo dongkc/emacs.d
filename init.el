@@ -152,6 +152,8 @@
   ;; It's dependent on init-site-lisp.el
   (if (file-exists-p "~/.custom.el") (load-file "~/.custom.el")))
 
+(load (concat user-emacs-directory "org-mode.el"))
+
 ;; @see https://www.reddit.com/r/emacs/comments/4q4ixw/how_to_forbid_emacs_to_touch_configuration_files/
 (setq custom-file (concat user-emacs-directory "custom-set-variables.el"))
 (load custom-file 'noerror)
@@ -161,3 +163,5 @@
 ;;; no-byte-compile: t
 ;;; End:
 (put 'erase-buffer 'disabled nil)
+
+(setq debug-on-error t)
