@@ -166,3 +166,4 @@
 
 (setq debug-on-error t)
 (setq linum-format "%d ")
+(setq c-basic-offset 2)
