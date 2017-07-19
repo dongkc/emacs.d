@@ -579,6 +579,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "pp" 'my-goto-previous-hunk
        "ww" 'narrow-or-widen-dwim
        "xnw" 'widen
+       "dw" 'delete-trailing-whitespace
        "xnd" 'narrow-to-defun
        "xnr" 'narrow-to-region
        "ycr" 'my-yas-reload-all
