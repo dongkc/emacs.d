@@ -197,10 +197,27 @@
 
 ;; {{ simpleclip has problem on Emacs 25.1
 (defun test-simpleclip ()
-  (simpleclip-set-contents "testsimpleclip!")
-  (string= "testsimpleclip!" (simpleclip-get-contents)))
+  (unwind-protect
+      (let (retval)
+        (condition-case ex
+            (progn
+              (simpleclip-set-contents "testsimpleclip!")
+              (setq retval
+                    (string= "testsimpleclip!"
+                             (simpleclip-get-contents))))
+          ('error
+           (message (format "Please install %s to support clipboard from terminal."
+                            (cond
+                             (*unix*
+                              "xsel or xclip")
+                             ((or *cygwin* *wind64*)
+                              "cygutils-extra from Cygwin")
+                             (t
+                              "CLI clipboard tools"))))
+           (setq retval nil)))
+        retval)))
 
-(setq simpleclip-works (test-simpleclip))
+(setq simpleclip-works (test-simpleclip) )
 
 (defun my-gclip ()
   (if simpleclip-works (simpleclip-get-contents)
@@ -252,9 +269,10 @@
       (set-buffer rlt-buf)
       (erase-buffer)
       (insert ,content)
-      (diff-mode)
+      ;; `ffip-diff-mode' is more powerful than `diff-mode'
+      (ffip-diff-mode)
       (goto-char (point-min))
-      ;; evil keybinding
+      ;; Evil keybinding
       (if (fboundp 'evil-local-set-key)
           (evil-local-set-key 'normal "q"
                               (lambda ()

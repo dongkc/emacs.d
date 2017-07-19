@@ -10,10 +10,14 @@ But you may use safer HTTPS instead.")
 (defvar melpa-include-packages
   '(ace-mc
     bbdb
+    dumb-jump
     color-theme
-    ivy
     js-doc
-    counsel
+    ;; {{ since stable v0.9.1 released, we go back to stable version
+    ;; ivy
+    ;; counsel
+    ;; swiper ; abo-abo has not released 9.0 yet, at least he didn't tag master branch
+    ;; }}
     wgrep
     robe
     groovy-mode
@@ -26,6 +30,7 @@ But you may use safer HTTPS instead.")
     findr
     mwe-log-commands
     yaml-mode
+    counsel-gtags ; the stable version is never released
     noflet
     db
     creole
@@ -160,7 +165,8 @@ But you may use safer HTTPS instead.")
 (require-package 'haskell-mode)
 (require-package 'gitignore-mode)
 (require-package 'gitconfig-mode)
-(require-package 'gist)
+(unless *emacs24old*
+  (require-package 'gist))
 (require-package 'wgrep)
 (require-package 'request)
 (require-package 'lua-mode)
@@ -216,7 +222,7 @@ But you may use safer HTTPS instead.")
 (require-package 'unfill)
 (require-package 'w3m)
 (require-package 'idomenu)
-(require-package 'ggtags)
+(require-package 'counsel-gtags)
 (require-package 'buffer-move)
 (require-package 'ace-window)
 (require-package 'cmake-mode)
@@ -248,13 +254,16 @@ But you may use safer HTTPS instead.")
 (require-package 'company-c-headers)
 (require-package 'legalese)
 (require-package 'simple-httpd)
-(require-package 'git-messenger)
-(require-package 'git-gutter)
+;; (require-package 'git-gutter) ; use my patched version
 (require-package 'flx-ido)
 (require-package 'neotree)
 (require-package 'define-word)
 (require-package 'quack) ; for scheme
 (require-package 'hydra)
 (require-package 'chinese-pyim)
+(require-package 'web-mode)
+(require-package 'dumb-jump)
+(require-package 'emms)
+(require-package 'package-lint) ; lint package before submit it to MELPA
 
 (provide 'init-elpa)

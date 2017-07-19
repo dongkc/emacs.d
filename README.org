@@ -1,5 +1,5 @@
 * Checklist
-- Tested with Emacs 24.3.1, 24.4, 24.5, 25.1 on Linux/Windows/Cygwin/Mac (I will stop 24.3 support at <2018-01-01>)
+- Tested with Emacs 24.3.1, 24.4, 24.5, 25.1, 25.2 on Linux/Windows/Cygwin/Mac (I will stop 24.3 support at <2018-01-01>)
 - Please read FAQ to disable [[http://www.vim.org][Vim]] key bindings
 - Please read section "Key bindings" to learn key bindings
 - If you use Windows Emacs, you have to [[https://www.gnu.org/software/emacs/manual/emacs-gnutls.html][install GnuTLS Dlls manually]] to be able to install packages from remote repositories
@@ -66,10 +66,16 @@ You can install them in any way you like. But =OS package manager= is easier.
 These tools are *OPTIONAL*.
 
 Please ignore any related error message. For example, if aspell and hunspell are not installed, you can ignore all the flyspell error messages.
-**** w3m (web browser in console)
-- Required by =w3m= (w3m is emacs package name written in elisp)
+**** w3m (web browser)
+- Required by =emacs-w3m=
 - Install through OS package manager
-- Please note only emacs with GUI can display image
+- Only GUI Emacs can display image
+
+You can insert =(setq mm-text-html-renderer 'w3m)= in =~/.gnus.el= to force HTML mail be rendered by =w3m= instead of the default HTML rendering engine =shr=.
+
+=shr= supports COLOR but =w3m= not.
+
+But my =w3m= based utilities can open built in video/audio/image. They can't be used until you replace =shr= with =w3m=. Anyway, your choice.
 **** lua
 - Required by =flymake-lua=
 - Install through OS package manager
@@ -99,12 +105,11 @@ Please ignore any related error message. For example, if aspell and hunspell are
 - Install through OS package manager
 **** jshint
 - Install =node.js= through OS package manager, then =npm install -g jshint=
-- required by js-mode
-- by default I use js2-mode which does NOT need jshint
+- Required by js-mode
+- I use js2-mode which does NOT need jshint
 **** xsel
 - Required by my clipboard command =copy-to-x-clipboard= and =paste-from-x-clipboard= under Linux
 - Install through OS package manager
-
 **** [[http://www.cmake.org][CMake]]
 - Required by =cpputils-cmake=
 - Install through OS package manager
@@ -116,10 +121,12 @@ Please ignore any related error message. For example, if aspell and hunspell are
 - If you use =cpputils-cmake= and =cmake=, =cpputils-cmake= will do all the setup for you. You don't need read next item! But please spend *a few minutes to learn the basics of cmake*! There is a one minute step-by-step-guide in [[https://github.com/redguardtoo/cpputils-cmake][README of cpputils-cmake]] to teach you how to use cmake.
 - If you use =company-clang=, add =(setq company-clang-arguments '("-I/example1/dir" "-I/example2/dir"))= into ~/.emacs.d/init.el
 
+**** pandoc
+- Required by =markdown-preview= from =markdown-mode=
+- Install through OS package manager
 **** GCC/Make
 - Required by =flymake=
 - Install through OS package manager
-
 **** [[https://addons.mozilla.org/en-us/firefox/addon/mozrepl/][MozRepl (Firefox addon)]]
 - Required by [[http://www.emacswiki.org/emacs/MozRepl][MozRepl]]
 - Used by Firefox
@@ -131,11 +138,10 @@ Please ignore any related error message. For example, if aspell and hunspell are
 - See [[http://blog.binchen.org/?p=1057][How to use ctags in Emacs effectively]]
 
 **** [[http://www.gnu.org/software/global][GNU Global]]
-- Required by =ggtags.el=
+- Required by =counsel-gtags=
 - It creates index files for code navigation and auto-completion
-- More advanced than ctags, supports references and has better performance
+- Please read [[https://www.gnu.org/software/global/manual/global.html][GNU Global manual]] to understand environment variables =GTAGSLIBPATH= and =MAKEOBJDIRPREFIX=
 - Install through OS package manager
-
 **** LibreOffice
 - Only the executable =soffice= is used when converting odt file into doc/pdf
 - conversion happens automatically when exporting org-mode to odt
@@ -154,13 +160,16 @@ Please ignore any related error message. For example, if aspell and hunspell are
 - Required by sdcv.el
 - Install through OS package manager
 - Run =curl http://abloz.com/huzheng/stardict-dic/dict.org/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic= to install dictionary
+**** [[https://github.com/BurntSushi/ripgrep][ripgrep]]
+- Used by =M-x my-grep= to search text in files
+- Run =curl https://sh.rustup.rs -sSf | sh= in shell to install [[https://www.rust-lang.org/][Rust]] then =cargo install ripgrep=
+- Tweak environment variable PATH to let Emacs find ripgrep
 **** [[https://github.com/ggreer/the_silver_searcher][the_silver_search (ag)]]
-- Search text in files
-- Required by `M-x my-grep`
+- Used by =M-x my-grep= to search text in files if [[https://github.com/BurntSushi/ripgrep][ripgrep]] not installed
 - Install through OS package manager
 * Usage
 ** Tutorial (OPTIONAL)
-=~/.emacs.d/lisp/init-evil.el= list my frequently used key bindings.
+Basic knowledge of Linux/Unix is recommended except the tutorials . At least you should understand the words like "environment variable", "shell", "stdin", "stdout", "man", "info".
 *** Basic tutorial
 Everyone should finish this tutorial at first.
 **** Step 1, learn OS basics
@@ -174,12 +183,14 @@ Press =C-h t= in Emacs ("C" means Ctrl key, "M" means Alt key) to read bundled t
 
 At minimum you need know:
 - How to move cursor
-- How to read help by pressing =C-h v= and =C-h f=.
+- =C-h v= to describe variable
+- =C-h f= to describe function
+- =C-h k= to check function key binding
 **** Step 3, know org-mode basics
 [[http://orgmode.org/][Org-mode]] is for notes-keeping and planning.
 
 Please watch [[https://www.youtube.com/watch?v=oJTwQvgfgMM][Carsten Dominik's talk]]. It's really simple. The only hot key to remember is =Tab=.
-** Step 4, what's your real world problem
+**** Step 4, start from real world problem
 You can visit [[http://www.emacswiki.org/emacs/][EmacsWiki]] for the solution. Newbies can ask for help at [[http://www.reddit.com/r/emacs/]].
 *** Evil-mode tutorial
 Required for vim user,
@@ -232,6 +243,31 @@ By default [[https://github.com/alloy-d/color-theme-molokai/blob/master/molokai-
 But you can run the =M-x my-toggle-color-theme= to switch to the fallback theme =color-theme-deep-blue=.
 
 You can change the definition of =my-toggle-color-theme= in =init-color-theme.el=.
+** Grep/Replace text in project
+Many third party plugins bundled in this setup have already provided all the features you needed. For example, if you use =git=, =counsel-git-grep= from package [[https://github.com/abo-abo/swiper][counsel/ivy]] works out of the box.
+
+A generic grep tool =my-grep= is provided if you don't use =git=. Since =my-grep= is based on =counsel/ivy=, it also supports "multi-editing via Ivy". You could read [[https://sam217pa.github.io/2016/09/11/nuclear-power-editing-via-ivy-and-ag/][Nuclear weapon multi-editing via Ivy and Ag]] to get the idea.
+
+The good news is my setup optimizes the multi-edit workflow. After =M-x my-grep= (or pregre ",qq"), you only need press =C-c C-o= once to use =wgrep-mode=, and you can edit text (for example, delete lines) in =wgrep-mode= without any futher key presssing.
+** js2-mode
+I release patched =js2-mode= based on [[https://github.com/mooz/js2-mode][latest official version]] every three months. My patched version has better imenu support.
+
+Please =package-refresh-content= from time to time upgrade =js2-mode=.
+** React and JSX
+I use =rjsx-mode= with Emacs v25+. It's based on =js2-mode= so it has excellent imenu support.
+
+But =web-mode= v15+ is also very popular to edit jsx files.
+
+In order to replace =rjsx-mode= with =web-mode=, you need search line =(add-to-list 'auto-mode-alist '("\\.jsx\\'" . rjsx-mode))= in =init-javascript.el= and replace =rjsx-mode= with =web-mode= on that line.
+** git-gutter
+I use modified version of =git-gutter= for now until my pull request is merged into official repository.
+
+You can set =git-gutter:exp-to-create-diff= to make git gutter support other VCS (Perforce, for example),
+#+begin_src elisp
+(setq git-gutter:exp-to-create-diff
+      (shell-command-to-string (format "p4 diff -du -db %s"
+                                       (file-relative-name buffer-file-name))))
+#+end_src
 ** Start a shell inside Emacs
 Please =M-x multi-term=.
 
@@ -298,7 +334,7 @@ BTW, please *read my comments* above the code at first.
 ** Open file with Ido
 If you press =C-x C-f= to open a file, [[http://emacswiki.org/emacs/InteractivelyDoThings][Ido]] will show the suggestions.
 
-Keep pressing =C-f= to ignore the suggestions.
+Keep pressing =C-f= to ignore suggestions.
 ** Windows
 I strongly suggest [[http://www.cygwin.com/][Cygwin]] version of Emacs. But native windows version is OK if it knows how to find the third party command line tools. Cygwin provides most of those tools by default. Add =C:\Cygwin64\bin= to environment variable =PATH= so Emacs can detect the tools automatically.
 
@@ -319,9 +355,7 @@ If you use Gnus for email, check init-gnus.el and read [[http://blog.binchen.org
 ** Cannot download ELPA packages?
 Some package cannot be downloaded automatically because of network problem.
 
-You could,
-- =M-x list-packages= to manually install it
-- Or =M-x package-refresh-content= and restart Emacs. the package will be installed automatically.
+You could =M-x package-refresh-content= and restart Emacs. the package will be installed automatically.
 ** Disable Vim key bindings
 By default EVIL (Vim emulation in Emacs) is used. Comment out line containing =(require 'init-evil)= in init.el to unload it.
 ** Evil setup

@@ -1,12 +1,7 @@
-;; {{ swiper&ivy-mode
-(defun swiper-the-thing ()
-  (interactive)
-  (swiper (my-use-selected-string-or-ask "")))
-;; }}
-
 ;; {{ shell and conf
 (add-to-list 'auto-mode-alist '("\\.[^b][^a][a-zA-Z]*rc$" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.aspell\\.en\\.pws\\'" . conf-mode))
+(add-to-list 'auto-mode-alist '("\\.editorconfig$" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.meta\\'" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.?muttrc\\'" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.mailcap\\'" . conf-mode))
@@ -45,10 +40,8 @@
 
 ;; {{ isearch
 ;; Use regex to search by default
-(global-set-key (kbd "C-s") 'isearch-forward-regexp)
-(global-set-key (kbd "C-r") 'isearch-backward-regexp)
-(global-set-key (kbd "C-M-s") 'isearch-forward)
-(global-set-key (kbd "C-M-r") 'isearch-backward)
+(global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
+(global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 ;; }}
 
@@ -105,13 +98,13 @@
 (setq ffip-diff-backends '(my-git-show-selected-commit
                            my-git-diff-current-file
                            ;; `git log -p' current file
-                           (shell-command-to-string (format "cd $(git rev-parse --show-toplevel) && git --no-pager log --date=short -p '%s'"
-                                                            (buffer-file-name)))
-                           "cd $(git rev-parse --show-toplevel) && git diff"
-                           "cd $(git rev-parse --show-toplevel) && git diff --cached"
-                           (shell-command-to-string (format "cd $(git rev-parse --show-toplevel) && git --no-pager log --date=short -S'%s' -p"
-                                                            (read-string "Git search string:")))
-                           (car kill-ring)))
+                           ("git diff" . "cd $(git rev-parse --show-toplevel) && git diff")
+                           ("git diff --cached" . "cd $(git rev-parse --show-toplevel) && git diff --cached")
+                           ("git log -p" . (shell-command-to-string (format "cd $(git rev-parse --show-toplevel) && git --no-pager log --date=short -p '%s'"
+                                                                            (buffer-file-name))))
+                           ("git log -Sstring -p" . (shell-command-to-string (format "cd $(git rev-parse --show-toplevel) && git --no-pager log --date=short -S'%s' -p"
+                                                            (read-string "Git search string:"))))
+                           ("diff from `kill-ring'" . (car kill-ring))))
 
 (defun neotree-project-dir ()
   "Open NeoTree using the git root."
@@ -621,7 +614,7 @@ If step is -1, go backward."
 (add-hook 'string-edit-at-point-hook 'string-edit-at-point-hook-setup)
 ;; }}
 
-;; Diff two regions
+;; {{ Diff two regions
 ;; Step 1: Select a region and `M-x diff-region-tag-selected-as-a'
 ;; Step 2: Select another region and `M-x diff-region-compare-with-b'
 ;; Press "q" in evil-mode or "C-c C-c" to exit the diff output buffer
@@ -652,7 +645,7 @@ If step is -1, go backward."
     rlt))
 
 (defun diff-region-tag-selected-as-a ()
-  "Select a region to compare"
+  "Select a region to compare."
   (interactive)
   (when (region-active-p)
     (let (tmp buf)
@@ -663,45 +656,60 @@ If step is -1, go backward."
         (set-buffer buf)
         (erase-buffer))
       (append-to-buffer buf (car tmp) (cadr tmp))))
-  (message "Now select other region to compare and run `diff-region-compare-with-b`"))
+  (message "Now select other region to compare and run `diff-region-compare-with-b'"))
 
 (defun diff-region-compare-with-b ()
-  "Compare current region with region selected by `diff-region-tag-selected-as-a' "
+  "Compare current region with region selected by `diff-region-tag-selected-as-a'.
+If no region is selected. You will be asked to use `kill-ring' or clipboard instead.
+`simpleclip' need be installed to read clipboard."
   (interactive)
-  (if (region-active-p)
-      (let (rlt-buf
-            diff-output
-            (fa (make-temp-file (expand-file-name "scor"
-                                                  (or small-temporary-file-directory
-                                                      temporary-file-directory))))
-            (fb (make-temp-file (expand-file-name "scor"
-                                                  (or small-temporary-file-directory
-                                                      temporary-file-directory)))))
-        ;;  save current content as file B
-        (when fb
-          (setq tmp (diff-region-format-region-boundary (region-beginning) (region-end)))
-          (write-region (car tmp) (cadr tmp) fb))
-
-        (when (and fa (file-exists-p fa) fb (file-exists-p fb))
-          ;; save region A as file A
-          (save-current-buffer
-            (set-buffer (get-buffer-create "*Diff-regionA*"))
-            (write-region (point-min) (point-max) fa))
-          ;; diff NOW!
-          ;; show the diff output
-          (if (string= (setq diff-output (shell-command-to-string (format "diff -Nabur %s %s" fa fb))) "")
-              ;; two regions are same
-              (message "Two regions are SAME!")
-            ;; show the diff
-            (diff-region-open-diff-output diff-output
-                                          "*Diff-region-output*")))
-
-        ;; clean the temporary files
-        (if (and fa (file-exists-p fa))
-            (delete-file fa))
-        (if (and fb (file-exists-p fb))
-            (delete-file fb)))
-    (message "Please select region at first!")))
+  (let* (rlt-buf
+         diff-output
+         ;; file A
+         (fa (make-temp-file (expand-file-name "scor"
+                                               (or small-temporary-file-directory
+                                                   temporary-file-directory))))
+         ;; file B
+         (fb (make-temp-file (expand-file-name "scor"
+                                               (or small-temporary-file-directory
+                                                   temporary-file-directory)))))
+    (when (and fa (file-exists-p fa) fb (file-exists-p fb))
+      (cond
+       ((region-active-p)
+        ;; text from selected region
+        (setq tmp (diff-region-format-region-boundary (region-beginning) (region-end)))
+        (write-region (car tmp) (cadr tmp) fb))
+       (t
+        ;; text from `kill-ring' or clipboard
+        (unless (featurep 'ido) (require 'ido))
+        (let* ((choice (ido-completing-read "Since no region selected, compare text in:"
+                                            '("kill-ring" "clipboard")))
+               (txt (cond
+                     ((string= choice "kill-ring")
+                      (car kill-ring))
+                     ((string= choice "clipboard")
+                      (unless (featurep 'simpleclip) (require 'simpleclip))
+                      (my-gclip)))))
+          (with-temp-file fb
+            (insert txt)))))
+      ;; save region A as file A
+      (save-current-buffer
+        (set-buffer (get-buffer-create "*Diff-regionA*"))
+        (write-region (point-min) (point-max) fa))
+      ;; diff NOW!
+      ;; show the diff output
+      (if (string= (setq diff-output (shell-command-to-string (format "diff -Nabur %s %s" fa fb))) "")
+          ;; two regions are same
+          (message "Two regions are SAME!")
+        ;; show the diff
+        (diff-region-open-diff-output diff-output
+                                      "*Diff-region-output*"))
+      ;; clean the temporary files
+      (if (and fa (file-exists-p fa))
+          (delete-file fa))
+      (if (and fb (file-exists-p fb))
+          (delete-file fb)))))
+;; }}
 
 ;; {{ cliphist.el
 (setq cliphist-use-ivy t)
@@ -721,7 +729,7 @@ If step is -1, go backward."
     (copy-yank-str str)
     (message "%s => clipboard & yank ring" str)))
 
-(defun pabs()
+(defun my-insert-absolute-path()
   "Relative path to full path."
   (interactive)
   (let* ((str (my-use-selected-string-or-ask "Input relative path:"))
@@ -729,7 +737,7 @@ If step is -1, go backward."
     (copy-yank-str path)
     (message "%s => clipboard & yank ring" path)))
 
-(defun prel()
+(defun my-insert-relative-path()
   "Full path to relative path."
   (interactive)
   (let* ((str (my-use-selected-string-or-ask "Input absolute path:"))
@@ -837,5 +845,32 @@ If step is -1, go backward."
         (y-or-n-p "The message suggests that you may want to attach something, but no attachment is found. Send anyway?")
       (error "It seems that an attachment is needed, but none was found. Aborting sending."))))
 (add-hook 'message-send-hook 'my-message-pre-send-check-attachment)
+
 ;; }}
+
+;; @see https://stackoverflow.com/questions/3417438/closing-all-other-buffers-in-emacs
+(defun kill-all-but-current-buffer ()
+  (interactive)
+    (mapc 'kill-buffer (cdr (buffer-list (current-buffer)))))
+
+(defun minibuffer-inactive-mode-hook-setup ()
+  ;; make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer
+  ;; @see `he-dabbrev-beg', so we need re-define syntax for '/'
+  (set-syntax-table (let* ((table (make-syntax-table)))
+                      (modify-syntax-entry ?/ "." table)
+                      table)))
+(add-hook 'minibuffer-inactive-mode-hook 'minibuffer-inactive-mode-hook-setup)
+
+;; {{ dumb-jump
+(setq dumb-jump-selector 'ivy)
+(dumb-jump-mode)
+;; }}
+
+;; {{ vc-msg
+(defun vc-msg-hook-setup (vcs-type commit-info)
+  ;; copy commit id to clipboard
+  (my-pclip (plist-get commit-info :id)))
+(add-hook 'vc-msg-hook 'vc-msg-hook-setup)
+;; }}
+
 (provide 'init-misc)
