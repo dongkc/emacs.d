@@ -165,3 +165,4 @@
 (put 'erase-buffer 'disabled nil)
 
 (setq debug-on-error t)
+(setq linum-format "%d ")
