@@ -16,7 +16,7 @@ But you may use safer HTTPS instead.")
     ;; {{ since stable v0.9.1 released, we go back to stable version
     ;; ivy
     ;; counsel
-    ;; swiper ; abo-abo has not released 9.0 yet, at least he didn't tag master branch
+    ;; swiper
     ;; }}
     wgrep
     robe
@@ -43,7 +43,6 @@ But you may use safer HTTPS instead.")
     htmlize
     scratch
     session
-    crontab-mode
     bookmark+
     flymake-lua
     multi-term
@@ -165,12 +164,11 @@ But you may use safer HTTPS instead.")
 (require-package 'haskell-mode)
 (require-package 'gitignore-mode)
 (require-package 'gitconfig-mode)
-(unless *emacs24old*
-  (require-package 'gist))
+(unless *emacs24old* (require-package 'gist))
 (require-package 'wgrep)
 (require-package 'request)
 (require-package 'lua-mode)
-(require-package 'robe)
+(unless *emacs24old* (require-package 'robe))
 (require-package 'inf-ruby)
 (require-package 'workgroups2)
 (require-package 'yaml-mode)
@@ -194,7 +192,6 @@ But you may use safer HTTPS instead.")
 (require-package 'scratch)
 (require-package 'rainbow-delimiters)
 (require-package 'textile-mode)
-(require-package 'crontab-mode)
 (require-package 'dsvn)
 (require-package 'git-timemachine)
 (require-package 'exec-path-from-shell)
@@ -260,10 +257,12 @@ But you may use safer HTTPS instead.")
 (require-package 'define-word)
 (require-package 'quack) ; for scheme
 (require-package 'hydra)
-(require-package 'chinese-pyim)
+(require-package 'ivy-hydra) ; @see https://oremacs.com/2015/07/23/ivy-multiaction/
+(require-package 'pyim)
 (require-package 'web-mode)
 (require-package 'dumb-jump)
 (require-package 'emms)
 (require-package 'package-lint) ; lint package before submit it to MELPA
+(require-package 'iedit)
 
 (provide 'init-elpa)

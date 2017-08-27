@@ -149,11 +149,6 @@
     ))
 ;; }}
 
-;; {{ crontab
-;; in shell "EDITOR='emacs -nw' crontab -e" to edit cron job
-(add-to-list 'auto-mode-alist '("crontab.*\\'" . crontab-mode))
-;; }}
-
 ;; cmake
 (setq auto-mode-alist (append '(("CMakeLists\\.txt\\'" . cmake-mode))
                               '(("\\.cmake\\'" . cmake-mode))
@@ -256,7 +251,9 @@
     (setq flyspell-check-doublon nil)
     ;; enable for all programming modes
     ;; http://emacsredux.com/blog/2013/04/21/camelcase-aware-editing/
-    (subword-mode)
+    (unless (derived-mode-p 'js2-mode)
+      (subword-mode 1))
+
     (setq-default electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
     (electric-pair-mode 1)
 
@@ -395,11 +392,6 @@ See \"Reusing passwords for several connections\" from INFO.
     (read-only-mode -1))
   (add-hook 'messages-buffer-mode-hook 'messages-buffer-mode-hook-setup))
 ;; }}
-
-;; increase and decrease font size in GUI emacs
-(when (display-graphic-p)
-  (global-set-key (kbd "C-=") 'text-scale-increase)
-  (global-set-key (kbd "C--") 'text-scale-decrease))
 
 ;; vimrc
 (add-to-list 'auto-mode-alist '("\\.?vim\\(rc\\)?$" . vimrc-mode))
@@ -871,6 +863,29 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
   ;; copy commit id to clipboard
   (my-pclip (plist-get commit-info :id)))
 (add-hook 'vc-msg-hook 'vc-msg-hook-setup)
+
+(defun vc-msg-show-code-setup ()
+  ;; use `ffip-diff-mode' from package find-file-in-project instead of `diff-mode'
+  (unless (featurep 'find-file-in-project)
+    (require 'find-file-in-project))
+  (ffip-diff-mode))
+
+  (add-hook 'vc-msg-show-code-hook 'vc-msg-show-code-setup)
 ;; }}
 
+;; {{ eacl - emacs auto complete line(s)
+(global-set-key (kbd "C-x C-l") 'eacl-complete-line)
+(global-set-key (kbd "C-x ;") 'eacl-complete-statement)
+(global-set-key (kbd "C-x C-]") 'eacl-complete-snippet)
+(global-set-key (kbd "C-x C-t") 'eacl-complete-tag)
+;; }}
+
+;; {{ wgrep and rgrep, inspired by http://oremacs.com/2015/01/27/my-refactoring-workflow/
+(eval-after-load 'grep
+  '(define-key grep-mode-map
+     (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode))
+(eval-after-load 'wgrep
+  '(define-key grep-mode-map
+     (kbd "C-c C-c") 'wgrep-finish-edit))
+;; }}
 (provide 'init-misc)

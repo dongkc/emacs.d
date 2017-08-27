@@ -26,16 +26,21 @@
 ;;; Code:
 (require 'vc-msg-sdk)
 
-(defvar vc-msg-p4-program "p4")
+(defcustom vc-msg-p4-program "p4"
+  "Perforce program."
+  :type 'string
+  :group 'vc-msg)
 
-(defvar vc-msg-p4-file-to-url nil
+(defcustom vc-msg-p4-file-to-url nil
   "Please note (car vc-msg-p4-file-to-url) is the original file prefix.
 And (cadr vc-msg-p4-file-to-url) is the url prefix.
 Please note it supports regular expression.
 It's used to convert a local file path to Perforce URL.
 If you use Windows version p4 in Cygwin Emacs, or Cygwin
 version p4 in Windows Emacs, you need convert the path
-to URL.")
+to URL."
+  :type '(repeat string)
+  :group 'vc-msg)
 
 (defun vc-msg-p4-generate-cmd (opts)
   "Generate Perforce CLI from OPTS."
@@ -105,17 +110,30 @@ Parse the command execution output and return a plist:
 (defun vc-msg-p4-show-code ()
   "Show code."
   (let* ((info vc-msg-previous-commit-info)
-         (cmd (vc-msg-p4-generate-cmd (format "describe -du %s" (plist-get info :id)))))
+         (cmd (vc-msg-p4-generate-cmd (format "describe -du %s" (plist-get info :id))))
+         (rlt (shell-command-to-string cmd)))
+    ;; remove p4 verbose bullshit and create a standard diff output
+    ;; Don't be too greedy, or else regex will overflow
+    (setq rlt (replace-regexp-in-string "^\\(Affected\\|Moved\\) files \.\.\.[\r\n]+"
+                                        ""
+                                        rlt))
+    (setq rlt (replace-regexp-in-string "Differences \.\.\.[\r\n]+" "" rlt))
+    ;; one line short description of change list
+    (setq rlt (replace-regexp-in-string "Change \\([0-9]+\\) by \\([^ @]+\\)@[^ @]+ on \\([^ \r\n]*\\).*[\r\n \t]+\\([^ \t].*\\)" "\\1 by \\2@\\3 \\4" rlt))
+    ;; `diff-mode' friendly format
+    (setq rlt (replace-regexp-in-string "^==== \\(.*\\)#[0-9]+ (text) ====[\r\n]+" "--- \\1\n+++ \\1\n" rlt))
     (vc-msg-sdk-get-or-create-buffer
      "vs-msg"
-     (shell-command-to-string cmd))))
+     rlt)))
 
-(defvar vc-msg-p4-extra
+(defcustom vc-msg-p4-extra
   '(("c" "[c]ode" vc-msg-p4-show-code))
   "Extra keybindings/commands used by `vc-msg-map'.
 An example:
 '((\"c\" \"[c]ode\" (lambda (message info))
-  (\"d\" \"[d]iff\" (lambda (message info))))")
+  (\"d\" \"[d]iff\" (lambda (message info))))"
+  :type '(repeat sexp)
+  :group 'vc-msg)
 
 (provide 'vc-msg-p4)
 ;;; vc-msg-p4.el ends here
