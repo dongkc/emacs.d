@@ -84,6 +84,8 @@
     (evil-local-set-key 'normal "N" 'diff-file-next)
     (evil-local-set-key 'normal "q" 'ffip-diff-quit)
     (evil-local-set-key 'normal (kbd "RET") 'ffip-diff-find-file)
+    ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
+    (evil-local-set-key 'normal "a" 'ffip-diff-apply-hunk)
     (evil-local-set-key 'normal "o" 'ffip-diff-find-file))
 (add-hook 'ffip-diff-mode-hook 'ffip-diff-mode-hook-setup)
 
@@ -290,6 +292,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "gk" 'outline-backward-same-level
   (kbd "TAB") 'org-cycle)
 
+;; {{ specify major mode uses Evil (vim) NORMAL state or EMACS original state.
+;; You may delete this setup to use Evil NORMAL state always.
 (loop for (mode . state) in
       '((minibuffer-inactive-mode . emacs)
         (grep-mode . emacs)
@@ -329,6 +333,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
         (js2-error-buffer-mode . emacs)
         )
       do (evil-set-initial-state mode state))
+;; }}
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
 (define-key evil-ex-completion-map (kbd "C-a") 'move-beginning-of-line)
@@ -380,7 +385,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "em" 'erase-message-buffer
        "eb" 'eval-buffer
        "sd" 'sudo-edit
-       "sc" 'shell-command
+       "sc" 'scratch
        "ee" 'eval-expression
        "aa" 'copy-to-x-clipboard ; used frequently
        "aw" 'ace-swap-window
@@ -392,6 +397,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "bs" '(lambda () (interactive) (goto-edge-by-comparing-font-face -1))
        "es" 'goto-edge-by-comparing-font-face
        "vj" 'my-validate-json-or-js-expression
+       "kc" 'kill-ring-to-clipboard
        "mcr" 'my-create-regex-from-kill-ring
        "ntt" 'neotree-toggle
        "ntf" 'neotree-find ; open file in current buffer in neotree
@@ -431,7 +437,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "mk" 'bookmark-set
        "yy" 'counsel-browse-kill-ring
        "gf" 'counsel-git ; find file
-       "gl" 'counsel-git-grep-yank-line
        "gg" 'counsel-git-grep-by-selected ; quickest grep should be easy to press
        "gm" 'counsel-git-find-my-file
        "gs" 'ffip-show-diff ; find-file-in-project 5.0+
@@ -590,6 +595,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; all keywords arguments are still supported
 (nvmap :prefix "SPC"
        "ss" 'wg-create-workgroup ; save windows layout
+       "se" 'evil-iedit-state/iedit-mode ; start iedit in emacs
+       "sc" 'shell-command
        "ll" 'my-wg-switch-workgroup ; load windows layout
        "kk" 'scroll-other-window
        "jj" 'scroll-other-window-up
@@ -761,6 +768,16 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; If the align separator is / you will be prompted for a regular expression instead of a plain character.
 (require 'evil-lion)
 (evil-lion-install)
+;; }}
+
+;; {{ @see https://github.com/syl20bnr/spacemacs/blob/master/doc/DOCUMENTATION.org#replacing-text-with-iedit
+;; same keybindgs as spacemacs:
+;;  - "SPC s e" to start `iedit-mode'
+;;  - "TAB" to toggle current occurrence
+;;  - "n" next, "N" previous (obviously we use "p" for yank)
+;;  - "gg" the first occurence, "G" the last occurence
+;;  - Please note ";;" or `avy-goto-char-timer' is also useful
+(require 'evil-iedit-state)
 ;; }}
 
 (provide 'init-evil)

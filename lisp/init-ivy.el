@@ -1,5 +1,4 @@
 (require 'counsel)
-(require 'cl-lib)
 ;; (ivy-mode 1)
 ;; not good experience
 ;; (setq ivy-use-virtual-buffers t)
@@ -94,52 +93,18 @@ Yank the file name at the same time.  FILTER is function to filter the collectio
 
 (defvar counsel-complete-line-use-git t)
 
-(defun counsel-find-quickest-grep ()
-  (let* ((exe (or (executable-find "rg") (executable-find "ag"))))
-    ;; ripgrep says that "-n" is enabled actually not,
-    ;; so we manually add it
-    (if exe (concat exe " -n"))))
+(defun counsel-has-quick-grep ()
+  (executable-find "rg"))
 
-(defun counsel-complete-line-by-grep ()
-  "Complete line using text from (line-beginning-position) to (point).
-If OTHER-GREP is not nil, we use the_silver_searcher and grep instead."
-  (interactive)
-  (let* ((cur-line (my-line-str (point)))
-         (default-directory (ffip-project-root))
-         (keyword (counsel-unquote-regex-parens (replace-regexp-in-string "^[ \t]*" "" cur-line)))
-         (cmd (cond
-               (counsel-complete-line-use-git
-                (format "git --no-pager grep --no-color -P -I -h -i -e \"^[ \\t]*%s\" | sed s\"\/^[ \\t]*\/\/\" | sed s\"\/[ \\t]*$\/\/\" | sort | uniq"
-                        keyword))
-               (t
-                (concat  (my-grep-cli keyword nil (if (counsel-find-quickest-grep) "" "-h")) ; tell grep not to output file name
-                         (if (counsel-find-quickest-grep) " | sed s\"\/^.*:[0-9]*:\/\/\"" "") ; remove file names for ag
-                         " | sed s\"\/^[ \\t]*\/\/\" | sed s\"\/[ \\t]*$\/\/\" | sort | uniq"))))
-         (leading-spaces "")
-         (collection (split-string (shell-command-to-string cmd) "[\r\n]+" t)))
+(defun counsel-find-quick-grep (&optional for-swiper)
+  ;; ripgrep says that "-n" is enabled actually not,
+  ;; so we manually add it
+  (concat (executable-find "rg")
+          " -n -M 256 --no-heading --color never "
+          (if for-swiper "-i '%s' %s" "-s")))
 
-    ;; grep lines without leading/trailing spaces
-    (when collection
-      (if (string-match "^\\([ \t]*\\)" cur-line)
-          (setq leading-spaces (match-string 1 cur-line)))
-      (cond
-       ((= 1 (length collection))
-        (counsel--replace-current-line leading-spaces (car collection)))
-       ((> (length collection) 1)
-        (ivy-read "lines:"
-                  collection
-                  :action (lambda (l)
-                            (counsel--replace-current-line leading-spaces l))))))))
-(global-set-key (kbd "C-x C-l") 'counsel-complete-line-by-grep)
-
-(defun counsel-git-grep-yank-line (&optional insert-line)
-  "Grep in the current git repository and yank the line.
-If INSERT-LINE is not nil, insert the line grepped"
-  (interactive "P")
-  (counsel-git-grep-or-find-api 'counsel-insert-grepped-line
-                                "git --no-pager grep -I --full-name -n --no-color -i -e \"%s\""
-                                "grep"
-                                nil))
+(if (counsel-has-quick-grep)
+    (setq counsel-grep-base-command (counsel-find-quick-grep t)))
 
 (defvar counsel-my-name-regex ""
   "My name used by `counsel-git-find-my-file', support regex like '[Tt]om [Cc]hen'.")
@@ -260,6 +225,7 @@ Or else, find files since 24 weeks (6 months) ago."
 (defvar my-grep-opts-cache '())
 
 (defun my-grep-exclude-opts (use-cache)
+  ;; (message "my-grep-exclude-opts called => %s" use-cache)
   (let* ((ignore-dirs (if use-cache (plist-get my-grep-opts-cache :ignore-dirs)
                         my-grep-ignore-dirs))
          (ignore-file-exts (if use-cache (plist-get my-grep-opts-cache :ignore-file-exts)
@@ -267,9 +233,8 @@ Or else, find files since 24 weeks (6 months) ago."
          (ignore-file-names (if use-cache (plist-get my-grep-opts-cache :ignore-file-names)
                               my-grep-ignore-file-names)))
     (cond
-     ((executable-find "rg")
-      (concat "-s --no-heading "
-              (mapconcat (lambda (e) (format "-g='!%s/*'" e))
+     ((counsel-has-quick-grep)
+      (concat (mapconcat (lambda (e) (format "-g='!%s/*'" e))
                          ignore-dirs " ")
               " "
               (mapconcat (lambda (e) (format "-g='!*.%s'" e))
@@ -277,19 +242,9 @@ Or else, find files since 24 weeks (6 months) ago."
               " "
               (mapconcat (lambda (e) (format "-g='!%s'" e))
                          ignore-file-names " ")))
-     ((executable-find "ag")
-      (concat "-s --nocolor --nogroup --silent "
-              (mapconcat (lambda (e) (format "--ignore-dir='%s'" e))
-                         my-grep-ignore-dirs " ")
-              " "
-              (mapconcat (lambda (e) (format "--ignore='*.%s'" e))
-                         ignore-file-exts " ")
-              " "
-              (mapconcat (lambda (e) (format "--ignore='%s'" e))
-                         ignore-file-names " ")))
      (t
       (concat (mapconcat (lambda (e) (format "--exclude-dir='%s'" e))
-                         my-grep-ignore-dirs " ")
+                         ignore-dirs " ")
               " "
               (mapconcat (lambda (e) (format "--exclude='*.%s'" e))
                          ignore-file-exts " ")
@@ -302,15 +257,15 @@ Or else, find files since 24 weeks (6 months) ago."
   (let* (opts cmd)
     (unless extra-opts (setq extra-opts ""))
     (cond
-     ((counsel-find-quickest-grep)
+     ((counsel-has-quick-grep)
       (setq cmd (format "%s %s %s \"%s\" --"
-                        (counsel-find-quickest-grep)
+                        (counsel-find-quick-grep)
                         (my-grep-exclude-opts use-cache)
                         extra-opts
                         keyword)))
      (t
       ;; use extended regex always
-      (setq cmd (format "grep -rsnE -P %s \"%s\" *"
+      (setq cmd (format "grep -rsnE %s %s \"%s\" *"
                         (my-grep-exclude-opts use-cache)
                         extra-opts
                         keyword))))
@@ -333,14 +288,10 @@ Or else, find files since 24 weeks (6 months) ago."
   ;; useless to set `default-directory', it's already correct
   ;; (message "default-directory=%s" default-directory)
   ;; we use regex in elisp, don't unquote regex
-  (let* ((regex (setq ivy--old-re
-                      (ivy--regex
-                       (progn (string-match "\"\\(.*\\)\"" (buffer-name))
-                              (match-string 1 (buffer-name))))))
-         (cands (remove nil (mapcar (lambda (s) (if (string-match-p regex s) s))
-                                    (split-string (shell-command-to-string (my-grep-cli keyword t))
-                                                  "[\r\n]+" t)))))
-
+  (let* ((cands (ivy--filter ivy-text
+                             (split-string (shell-command-to-string (my-grep-cli keyword t))
+                                           "[\r\n]+" t))))
+    ;; (message "ivy-text=%s cands-length=%d" ivy-text (length cands))
     ;; Need precise number of header lines for `wgrep' to work.
     (insert (format "-*- mode:grep; default-directory: %S -*-\n\n\n"
                     default-directory))
@@ -353,8 +304,8 @@ Or else, find files since 24 weeks (6 months) ago."
 (defun ivy-occur-grep-mode-hook-setup ()
   ;; no syntax highlight, I only care performance when searching/replacing
   (font-lock-mode -1)
-  ;; no truncate line, unnecessary calculation
-  (setq truncate-lines nil)
+  ;; @see https://emacs.stackexchange.com/questions/598/how-do-i-prevent-extremely-long-lines-making-emacs-slow
+  (column-number-mode -1)
   ;; turn on wgrep right now
   ;; (ivy-wgrep-change-to-wgrep-mode) ; doesn't work, don't know why
   )
@@ -364,7 +315,7 @@ Or else, find files since 24 weeks (6 months) ago."
 (defvar my-grep-debug nil)
 (defun my-grep ()
   "Grep at project root directory or current directory.
-Try to find best grep program (ripgrep, the silver searcher, grep...) automatically.
+Try to find best grep program (ripgrep, grep...) automatically.
 Extended regex like (pattern1|pattern2) is used."
   (interactive)
   (let* ((keyword (counsel-read-keyword "Enter grep pattern: "))
@@ -373,10 +324,10 @@ Extended regex like (pattern1|pattern2) is used."
          (dir (if my-grep-show-full-directory (my-root-dir)
                 (file-name-as-directory (file-name-base (directory-file-name (my-root-dir)))))))
 
-    (plist-put my-grep-opts-cache :ignore-dirs my-grep-ignore-dirs)
-    (plist-put my-grep-opts-cache :ignore-file-exts my-grep-ignore-file-exts)
-    (plist-put my-grep-opts-cache :ignore-file-names my-grep-ignore-file-names)
-    (message "my-grep-opts-cache=%s" my-grep-opts-cache)
+    (setq my-grep-opts-cache (plist-put my-grep-opts-cache :ignore-dirs my-grep-ignore-dirs))
+    (setq my-grep-opts-cache (plist-put my-grep-opts-cache :ignore-file-exts my-grep-ignore-file-exts))
+    (setq my-grep-opts-cache (plist-put my-grep-opts-cache :ignore-file-names my-grep-ignore-file-names))
+    ;; (message "my-grep-opts-cache=%s" my-grep-opts-cache)
 
     (ivy-read (format "matching \"%s\" at %s:" keyword dir)
               collection
@@ -405,35 +356,7 @@ Extended regex like (pattern1|pattern2) is used."
 If N > 1, assume just yank the Nth item in `kill-ring'.
 If N is nil, use `ivy-mode' to browse the `kill-ring'."
   (interactive "P")
-  (cond
-   ((or (not n) (and (= n 1) (not (fboundp 'browse-kill-ring))))
-    ;; remove duplicates in `kill-ring'
-    (let* ((candidates (cl-remove-if
-                   (lambda (s)
-                     (or (< (length s) 5)
-                         (string-match "\\`[\n[:blank:]]+\\'" s)))
-                   (delete-dups kill-ring))))
-      (let* ((ivy-height (/ (frame-height) 2)))
-        (ivy-read "Browse `kill-ring':"
-                  (mapcar
-                   (lambda (s)
-                     (let* ((w (frame-width))
-                            ;; display kill ring item in one line
-                            (key (replace-regexp-in-string "[ \t]*[\n\r]+[ \t]*" "\\\\n" s)))
-                       ;; strip the whitespace
-                       (setq key (replace-regexp-in-string "^[ \t]+" "" key))
-                       ;; fit to the minibuffer width
-                       (if (> (length key) w)
-                           (setq key (concat (substring key 0 (- w 4)) "...")))
-                       (cons key s)))
-                   candidates)
-                  :action 'my-insert-str))))
-   ((= n 1)
-    (browse-kill-ring))
-   ((> n 1)
-    (setq n (1- n))
-    (if (< n 0) (setq n 0))
-    (my-insert-str (nth n kill-ring)))))
+  (my-select-from-kill-ring my-insert-str n))
 
 (defun ivy-switch-buffer-matcher-pinyin (regexp candidates)
   (unless (featurep 'pinyinlib) (require 'pinyinlib))

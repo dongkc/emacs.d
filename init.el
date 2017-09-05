@@ -46,7 +46,7 @@
 (let ((file-name-handler-alist nil))
   (require 'init-autoload)
   (require 'init-modeline)
-  (require 'cl-lib)
+  ;; (require 'cl-lib) ; it's built in since Emacs v24.3
   (require 'init-compat)
   (require 'init-site-lisp) ;; Must come before elpa, as it may provide package.el
   (require 'init-utils)
@@ -80,7 +80,6 @@
   (require 'init-windows)
   (require 'init-sessions)
   (require 'init-git)
-  (require 'init-crontab)
   (require 'init-markdown)
   (require 'init-erlang)
   (require 'init-javascript)
@@ -159,6 +158,19 @@
 (load custom-file 'noerror)
 
 (setq gc-cons-threshold best-gc-cons-threshold)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
+ '(git-gutter:handled-backends (quote (svn hg git))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(window-numbering-face ((t (:foreground "DeepPink" :underline "DeepPink" :weight bold))) t))
 ;;; Local Variables:
 ;;; no-byte-compile: t
 ;;; End:
