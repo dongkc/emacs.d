@@ -588,6 +588,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "xnd" 'narrow-to-defun
        "xnr" 'narrow-to-region
        "ycr" 'my-yas-reload-all
+       "ed" 'color-theme-sanityinc-solarized-dark
+       "el" 'color-theme-sanityinc-solarized-light
        "wf" 'popup-which-function)
 ;; }}
 
