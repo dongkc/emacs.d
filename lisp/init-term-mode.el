@@ -9,7 +9,7 @@
 (ad-activate 'term-sentinel)
 
 ;; always use bash
-(defvar my-term-shell "/bin/bash")
+(defvar my-term-shell "/bin/zsh")
 (defadvice ansi-term (before force-bash)
   (interactive (list my-term-shell)))
 (ad-activate 'ansi-term)

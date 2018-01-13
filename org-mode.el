@@ -1612,7 +1612,7 @@ Late deadlines first, then scheduled, then non-late deadlines"
 (org-crypt-use-before-save-magic)
 (setq org-tags-exclude-from-inheritance (quote ("crypt")))
 ; GPG key to use for encryption
-(setq org-crypt-key "F0B66B40")
+(setq org-crypt-key "9870AD9DF825D899")
 
 (setq org-crypt-disable-auto-save nil)
 

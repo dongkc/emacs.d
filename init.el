@@ -179,3 +179,7 @@
 (setq debug-on-error t)
 (setq linum-format "%d ")
 (setq c-basic-offset 2)
+
+(setq mac-right-option-modifier 'control)
+(setq org-mobile-directory "~/git/nutstore/mobile")
+(setq org-mobile-inbox-for-pull (concat org-directory "/index.org"))
