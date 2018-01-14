@@ -144,7 +144,7 @@
   (require 'init-misc)
 
   ;; comment below line if you want to setup color theme in your own way
-  (if (or (display-graphic-p) (string-match-p "256color"(getenv "TERM"))) (require 'init-color-theme))
+  ;;(if (or (display-graphic-p) (string-match-p "256color"(getenv "TERM"))) (require 'init-color-theme))
 
   (require 'init-emacs-w3m)
   (require 'init-hydra)
@@ -171,26 +171,11 @@
   ;; It's dependent on init-site-lisp.el
   (if (file-exists-p "~/.custom.el") (load-file "~/.custom.el")))
 
-(load (concat user-emacs-directory "org-mode.el"))
-
 ;; @see https://www.reddit.com/r/emacs/comments/4q4ixw/how_to_forbid_emacs_to_touch_configuration_files/
 (setq custom-file (concat user-emacs-directory "custom-set-variables.el"))
 (load custom-file 'noerror)
 
 (setq gc-cons-threshold best-gc-cons-threshold)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
- '(git-gutter:handled-backends (quote (svn hg git))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(window-numbering-face ((t (:foreground "DeepPink" :underline "DeepPink" :weight bold))) t))
 ;;; Local Variables:
 ;;; no-byte-compile: t
 ;;; End:
@@ -200,6 +185,10 @@
 (setq linum-format "%d ")
 (setq c-basic-offset 2)
 
-(setq mac-right-option-modifier 'control)
+;; org mode setup
+(load (concat user-emacs-directory "org-mode.el"))
 (setq org-mobile-directory "~/git/nutstore/mobile")
 (setq org-mobile-inbox-for-pull (concat org-directory "/index.org"))
+
+;;treate my right option as control in my macbook
+(setq mac-right-option-modifier 'control)
