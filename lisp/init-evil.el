@@ -1,8 +1,6 @@
 ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
 ;; evil 1.0.8 search word instead of symbol
 (setq evil-symbol-word-search t)
-;; load undo-tree and ert
-(add-to-list 'load-path "~/.emacs.d/site-lisp/evil/lib")
 
 ;; @see https://bitbucket.org/lyro/evil/issue/511/let-certain-minor-modes-key-bindings
 (defmacro adjust-major-mode-keymap-with-evil (m &optional r)
@@ -14,7 +12,6 @@
 
 (adjust-major-mode-keymap-with-evil "git-timemachine")
 (adjust-major-mode-keymap-with-evil "browse-kill-ring")
-(adjust-major-mode-keymap-with-evil "etags-select")
 
 (require 'evil)
 
@@ -254,12 +251,13 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; }}
 
 ;; {{ https://github.com/syl20bnr/evil-escape
-(require 'evil-escape)
-(setq-default evil-escape-delay 0.5)
+(setq-default evil-escape-delay 0.3)
 (setq evil-escape-excluded-major-modes '(dired-mode))
 (setq-default evil-escape-key-sequence "kj")
+;; disable evil-escape when input method is on
 (evil-escape-mode 1)
 ;; }}
+
 
 ;; Move back the cursor one position when exiting insert mode
 (setq evil-move-cursor-back t)
@@ -296,6 +294,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; You may delete this setup to use Evil NORMAL state always.
 (loop for (mode . state) in
       '((minibuffer-inactive-mode . emacs)
+        (calendar-mode . emacs)
+        (special-mode . emacs)
         (grep-mode . emacs)
         (Info-mode . emacs)
         (term-mode . emacs)
@@ -314,7 +314,9 @@ If the character before and after CH is space or tab, CH is NOT slash"
         (help-mode . emacs)
         (eshell-mode . emacs)
         (shell-mode . emacs)
+        (xref--xref-buffer-mode . emacs)
         ;;(message-mode . emacs)
+        (epa-key-list-mode . emacs)
         (fundamental-mode . emacs)
         (weibo-timeline-mode . emacs)
         (weibo-post-mode . emacs)
@@ -329,7 +331,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
         (magit-commit-mode . normal)
         (magit-diff-mode . normal)
         (browse-kill-ring-mode . normal)
-        (etags-select-mode . normal)
         (js2-error-buffer-mode . emacs)
         )
       do (evil-set-initial-state mode state))
@@ -342,12 +343,52 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (define-key evil-ex-completion-map (kbd "M-n") 'next-complete-history-element)
 
 (define-key evil-normal-state-map "Y" (kbd "y$"))
+;; (define-key evil-normal-state-map (kbd "RET") 'ivy-switch-buffer-by-pinyin) ; RET key is preserved for occur buffer
 (define-key evil-normal-state-map "go" 'goto-char)
 (define-key evil-normal-state-map (kbd "M-y") 'counsel-browse-kill-ring)
-(define-key evil-normal-state-map (kbd "C-]") 'etags-select-find-tag-at-point)
-(define-key evil-visual-state-map (kbd "C-]") 'etags-select-find-tag-at-point)
+(define-key evil-normal-state-map (kbd "C-]") 'counsel-etags-find-tag-at-point)
+(define-key evil-visual-state-map (kbd "C-]") 'counsel-etags-find-tag-at-point)
 (define-key evil-insert-state-map (kbd "C-x C-n") 'evil-complete-next-line)
 (define-key evil-insert-state-map (kbd "C-x C-p") 'evil-complete-previous-line)
+
+;; the original "gd" or `evil-goto-definition' now try `imenu', `xref', search string to `point-min'
+;; xref part is annoying because I already use `counsel-etags' to search tag.
+(evil-define-motion my-evil-goto-definition ()
+  "Go to definition or first occurrence of symbol under point in current buffer."
+  :jump t
+  :type exclusive
+  (let* ((string (evil-find-symbol t))
+         (search (format "\\_<%s\\_>" (regexp-quote string)))
+         ientry ipos)
+    ;; load imenu if available
+    (unless (featurep 'imenu)
+      (condition-case nil
+          (require 'imenu)
+        (error nil)))
+    (if (null string)
+        (user-error "No symbol under cursor")
+      (setq isearch-forward t)
+      ;; if imenu is available, try it
+      (cond
+       ((fboundp 'imenu--make-index-alist)
+        (condition-case nil
+            (setq ientry (imenu--make-index-alist))
+          (error nil))
+        (setq ientry (assoc string ientry))
+        (setq ipos (cdr ientry))
+        (when (and (markerp ipos)
+                   (eq (marker-buffer ipos) (current-buffer)))
+          (setq ipos (marker-position ipos)))
+         ;; imenu found a position, so go there and
+         ;; highlight the occurrence
+        (if (numberp ipos)
+            (evil-search search t t ipos)
+          (evil-search search t t (point-min))))
+       ;; otherwise just go to first occurrence in buffer
+       (t
+        (evil-search search t t (point-min)))))))
+;; use "gt", someone might prefer original `evil-goto-definition'
+(define-key evil-motion-state-map "gt" 'my-evil-goto-definition)
 
 (require 'evil-matchit)
 (global-evil-matchit-mode 1)
@@ -404,7 +445,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "ntd" 'neotree-project-dir
        "nth" 'neotree-hide
        "nts" 'neotree-show
-       "fl" 'cp-filename-line-number-of-current-buffer
        "fn" 'cp-filename-of-current-buffer
        "fp" 'cp-fullpath-of-current-buffer
        "dj" 'dired-jump ;; open the dired from current file
@@ -427,19 +467,28 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "rd" 'evilmr-replace-in-defun
        "rb" 'evilmr-replace-in-buffer
        "ts" 'evilmr-tag-selected-region ;; recommended
-       "rt" 'evilmr-replace-in-tagged-region ;; recommended
        "tua" 'artbollocks-mode
        "cby" 'cb-switch-between-controller-and-view
        "cbu" 'cb-get-url-from-controller
-       "ht" 'etags-select-find-tag-at-point ; better than find-tag C-]
-       "hp" 'etags-select-find-tag
+       "ht" 'counsel-etags-find-tag-at-point ; better than find-tag C-]
+       "rt" 'counsel-etags-recent-tag
+       "ft" 'counsel-etags-find-tag
        "mm" 'counsel-bookmark-goto
        "mk" 'bookmark-set
        "yy" 'counsel-browse-kill-ring
+       "cf" 'counsel-grep ; grep current buffer
        "gf" 'counsel-git ; find file
        "gg" 'counsel-git-grep-by-selected ; quickest grep should be easy to press
        "gm" 'counsel-git-find-my-file
-       "gs" 'ffip-show-diff ; find-file-in-project 5.0+
+       "gs" (lambda ()
+              (interactive)
+              (let* ((ffip-diff-backends
+                      '(("Show git commit" . (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
+                                                       (collection (split-string (shell-command-to-string git-cmd) "\n" t))
+                                                       (item (ffip-completing-read "git log:" collection)))
+                                                  (when item
+                                                    (shell-command-to-string (format "git show %s" (car (split-string item "|" t))))))))))
+                (ffip-show-diff 0)))
        "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
        "sf" 'counsel-git-show-file
        "sh" 'my-select-from-search-text-history
@@ -479,9 +528,10 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "cxi" 'org-clock-in ; `C-c C-x C-i'
        "cxo" 'org-clock-out ; `C-c C-x C-o'
        "cxr" 'org-clock-report ; `C-c C-x C-r'
-       "qq" 'my-grep
+       "qq" 'counsel-etags-grep
+       "dd" 'counsel-etags-grep-symbol-at-point
        "xc" 'save-buffers-kill-terminal
-       "rr" 'counsel-recentf
+       "rr" 'my-counsel-recentf
        "rh" 'counsel-yank-bash-history ; bash history command => yank-ring
        "rf" 'counsel-goto-recent-directory
        "da" 'diff-region-tag-selected-as-a
@@ -496,8 +546,10 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "xe" 'eval-last-sexp
        "x0" 'delete-window
        "x1" 'delete-other-windows
-       "x2" 'split-window-vertically
-       "x3" 'split-window-horizontally
+       "x2" 'my-split-window-vertically
+       "x3" 'my-split-window-horizontally
+       "s2" 'ffip-split-window-vertically
+       "s3" 'ffip-split-window-horizontally
        "rw" 'rotate-windows
        "ru" 'undo-tree-save-state-to-register ; C-x r u
        "rU" 'undo-tree-restore-state-from-register ; C-x r U
@@ -532,7 +584,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
        "ne" 'flymake-goto-next-error
        "fw" 'ispell-word
        "bc" '(lambda () (interactive) (wxhelp-browse-class-or-api (thing-at-point 'symbol)))
-       "oag" 'org-agenda
+       "og" 'org-agenda
        "otl" 'org-toggle-link-display
        "oa" '(lambda ()
                (interactive)
@@ -688,12 +740,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
        ;;   '(progn
        ;;      (set-face-attribute 'avy-lead-face-0 nil :foreground "black")
        ;;      (set-face-attribute 'avy-lead-face-0 nil :background "#f86bf3")))
-       ";" 'avy-goto-char-timer
+       ";" 'avy-goto-char-2
+       "w" 'avy-goto-word-or-subword-1
+       "a" 'avy-goto-char-timer
        "db" 'sdcv-search-pointer ; in buffer
        "dt" 'sdcv-search-input+ ; in tip
        "dd" 'my-lookup-dict-org
-       "dw" 'define-word
-       "dp" 'define-word-at-point
        "mm" 'lookup-doc-in-man
        "gg" 'w3m-google-search
        "gf" 'w3m-google-by-filetype
@@ -780,6 +832,11 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;;  - "gg" the first occurence, "G" the last occurence
 ;;  - Please note ";;" or `avy-goto-char-timer' is also useful
 (require 'evil-iedit-state)
+;; }}
+
+;; {{ Evil’s f/F/t/T commands with Pinyin supptt,
+(require 'evil-find-char-pinyin)
+(evil-find-char-pinyin-mode 1)
 ;; }}
 
 (provide 'init-evil)
