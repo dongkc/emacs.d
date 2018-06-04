@@ -796,7 +796,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (require 'ox-ascii)
 
 (setq org-ditaa-jar-path "~/git/org-mode/contrib/scripts/ditaa.jar")
-(setq org-plantuml-jar-path "~/java/plantuml.jar")
+(setq org-plantuml-jar-path "/opt/plantuml/plantuml.jar")
 
 (add-hook 'org-babel-after-execute-hook 'bh/display-inline-images 'append)
 
@@ -1100,13 +1100,13 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 
 (defvar bh/plantuml-if-count 0)
 
-(defun bh/plantuml-if () 
+(defun bh/plantuml-if ()
   (incf bh/plantuml-if-count)
   (number-to-string bh/plantuml-if-count))
 
 (defvar bh/plantuml-loop-count 0)
 
-(defun bh/plantuml-loop () 
+(defun bh/plantuml-loop ()
   (incf bh/plantuml-loop-count)
   (number-to-string bh/plantuml-loop-count))
 
@@ -1119,7 +1119,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 
 (define-skeleton skel-org-block-plantuml-activity-if
   "Insert a org plantuml block activity if statement"
-  "" 
+  ""
   "if \"\" then\n"
   "  -> [condition] ==IF" (setq ifn (bh/plantuml-if)) "==\n"
   "  --> ==IF" ifn "M1==\n"
@@ -1132,7 +1132,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 
 (define-skeleton skel-org-block-plantuml-activity-for
   "Insert a org plantuml block activity for statement"
-  "Loop for each: " 
+  "Loop for each: "
   "--> ==LOOP" (setq loopn (bh/plantuml-loop)) "==\n"
   "note left: Loop" loopn ": For each " str "\n"
   "--> ==ENDLOOP" loopn "==\n"
@@ -1827,7 +1827,7 @@ Late deadlines first, then scheduled, then non-late deadlines"
 (add-hook 'org-mode-hook 'turn-on-flyspell 'append)
 
 ;; Disable keys in org-mode
-;;    C-c [ 
+;;    C-c [
 ;;    C-c ]
 ;;    C-c ;
 ;;    C-c C-x C-q  cancelling the clock (we never want this)
