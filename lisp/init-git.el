@@ -36,7 +36,7 @@
   (let (parent (filename (buffer-file-name)))
     (if (eq git-gutter:vcs-type 'svn)
         (setq parent "PREV")
-      (setq parent (if filename (concat (shell-command-to-string (concat "git --no-pager log --oneline -n1 --pretty='format:%H' " filename)) "^") "HEAD^")))
+      (setq parent (if filename (concat (shell-command-to-string (concat "git --no-pager log --oneline -n1 --pretty=\"format:%H\" " filename)) "^") "HEAD^")))
     (git-gutter:set-start-revision parent)
     (message "git-gutter:set-start-revision HEAD^")))
 
@@ -101,7 +101,7 @@
 (defvar git-svn--available-commands nil "Cached list of git svn subcommands")
 
 (defun git-svn (dir)
-  "Run git svn"
+  "Run git svn."
   (interactive "DSelect directory: ")
   (unless git-svn--available-commands
     (setq git-svn--available-commands
@@ -109,7 +109,7 @@
   (let* ((default-directory (vc-git-root dir))
          (compilation-buffer-name-function (lambda (major-mode-name) "*git-svn*")))
     (compile (concat "git svn "
-                     (ido-completing-read "git-svn command: " git-svn--available-commands nil t)))))
+                     (completing-read "git-svn command: " git-svn--available-commands nil t)))))
 
 (defun git-get-current-file-relative-path ()
   (replace-regexp-in-string (concat "^" (file-name-as-directory default-directory))
