@@ -87,6 +87,10 @@
      ;; great dictionary can be downloaded this way:
      ;; `curl -L https://github.com/tumashu/pyim-greatdict/raw/master/pyim-greatdict.pyim.gz | zcat > ~/.eim/pyim-greatdict.pyim`
 
+     (if (and my-pyim-directory
+              (file-exists-p (my-pyim-personal-dict "pyim-greatdict.pyim")))
+         (add-to-list 'pyim-dicts (list :name "pyim-greatdict" :file (my-pyim-personal-dict "pyim-greatdict.pyim"))))
+
      ;; don't use tooltip
      (setq pyim-use-tooltip 'popup)))
 ;; }}
