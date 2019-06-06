@@ -1,16 +1,20 @@
-;; Solution 1: disable all vc backends
+;; -*- coding: utf-8; lexical-binding: t; -*-
+
+;; ;; {{ Solution 1: disable all vc backends
 ;; @see http://stackoverflow.com/questions/5748814/how-does-one-disable-vc-git-in-emacs
 ;; (setq vc-handled-backends ())
+;; }}
 
-;; ;; Solution 2: if NO network mounted drive involved
+
+;; {{ Solution 2: if NO network mounted drive involved
 (setq vc-handled-backends '(Git SVN Hg))
-
 ;; @see https://www.reddit.com/r/emacs/comments/4c0mi3/the_biggest_performance_improvement_to_emacs_ive/
 ;; open files faster but you can't check if file is version
-;; controlled. other vcs functionality still works.
+;; controlled. other VCS functionality still works.
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
+;; }}
 
-;; ;; Solution 3: setup vc-handled-backends per project
+;; ;; {{ Solution 3: setup vc-handled-backends per project
 ;; (setq vc-handled-backends ())
 ;; (defun my-setup-develop-environment ()
 ;;   (interactive)
@@ -27,6 +31,7 @@
 ;; (add-hook 'web-mode-hook 'my-setup-develop-environment)
 ;; (add-hook 'c++-mode-hook 'my-setup-develop-environment)
 ;; (add-hook 'c-mode-hook 'my-setup-develop-environment)
+;; ;; }}
 
 ;; {{ git-gutter
 (local-require 'git-gutter)
@@ -45,15 +50,16 @@
   (git-gutter:set-start-revision nil)
   (message "git-gutter reset"))
 
-
-;; If you enable global minor mode
 (global-git-gutter-mode t)
 
 ;; nobody use bzr
-;; people are forced use subversion or hg, so they take priority
+;; I could be forced to use subversion or hg which has higher priority
 (custom-set-variables '(git-gutter:handled-backends '(svn hg git)))
 
-(git-gutter:linum-setup)
+(unless (fboundp 'global-display-line-numbers-mode)
+ ;; git-gutter's workaround for linum-mode bug.
+ ;; should not be used in `display-line-number-mode`
+ (git-gutter:linum-setup))
 
 (global-set-key (kbd "C-x C-g") 'git-gutter:toggle)
 (global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
@@ -80,44 +86,21 @@
                         (git-timemachine-show-revision rev)))))
 
 (defun my-git-timemachine ()
-  "Open git snapshot with the selected version.  Based on ivy-mode."
+  "Open git snapshot with the selected version."
   (interactive)
   (unless (featurep 'git-timemachine)
     (require 'git-timemachine))
   (git-timemachine--start #'my-git-timemachine-show-selected-revision))
 ;; }}
 
-;;----------------------------------------------------------------------------
-;; git-svn conveniences
-;;----------------------------------------------------------------------------
-(eval-after-load 'compile
-  '(progn
-     (dolist (defn (list '(git-svn-updated "^\t[A-Z]\t\\(.*\\)$" 1 nil nil 0 1)
-                         '(git-svn-needs-update "^\\(.*\\): needs update$" 1 nil nil 2 1)))
-       (add-to-list 'compilation-error-regexp-alist-alist defn))
-     (dolist (defn '(git-svn-updated git-svn-needs-update))
-       (add-to-list 'compilation-error-regexp-alist defn))))
-
-(defvar git-svn--available-commands nil "Cached list of git svn subcommands")
-
-(defun git-svn (dir)
-  "Run git svn."
-  (interactive "DSelect directory: ")
-  (unless git-svn--available-commands
-    (setq git-svn--available-commands
-          (string-all-matches "^  \\([a-z\\-]+\\) +" (shell-command-to-string "git svn help") 1)))
-  (let* ((default-directory (vc-git-root dir))
-         (compilation-buffer-name-function (lambda (major-mode-name) "*git-svn*")))
-    (compile (concat "git svn "
-                     (completing-read "git-svn command: " git-svn--available-commands nil t)))))
-
 (defun git-get-current-file-relative-path ()
+  "Get relative path of current file for Git."
   (replace-regexp-in-string (concat "^" (file-name-as-directory default-directory))
                             ""
                             buffer-file-name))
 
 (defun git-checkout-current-file ()
-  "git checkout urrent file"
+  "Git checkout current file."
   (interactive)
   (when (and (buffer-file-name)
              (yes-or-no-p (format "git checkout %s?"
@@ -126,12 +109,29 @@
       (shell-command (concat "git checkout " filename))
       (message "DONE! git checkout %s" filename))))
 
-(defun git-add-current-file ()
-  "git add file of current buffer"
+(defvar git-commit-message-history nil)
+(defun git-commit-tracked ()
+  "Run 'git add -u' and commit."
   (interactive)
-  (let ((filename))
-    (when buffer-file-name
-      (setq filename (git-get-current-file-relative-path))
+  (let* ((hint "Commit tracked files. Please input commit message (Enter to abort):")
+         (msg (read-from-minibuffer hint
+                                    nil
+                                    nil
+                                    nil
+                                    'git-commit-message-history)))
+    (cond
+     ((and msg (> (length msg) 3))
+      (shell-command "git add -u")
+      (shell-command (format "git commit -m \"%s\"" msg))
+      (message "Tracked files is commited."))
+     (t
+      (message "Do nothing!")))))
+
+(defun git-add-current-file ()
+  "Git add file of current buffer."
+  (interactive)
+  (when buffer-file-name
+    (let* ((filename (git-get-current-file-relative-path)))
       (shell-command (concat "git add " filename))
       (message "DONE! git add %s" filename))))
 
@@ -196,5 +196,39 @@
 
 ;; }}
 
-(provide 'init-git)
+(defun my-git-log-trace-definition ()
+  "Similar to `magit-log-trace-definition' but UI is simpler.
+If multi-lines are selected, trace the defintion of line range.
+If only one line is selected, use current selection as function name to look up.
+If nothing is selected, use the word under cursor as function name to look up."
+  (interactive)
+  (when buffer-file-name
+    (let* ((range-or-func (cond
+                           ((region-active-p)
+                            (cond
+                             ((my-is-one-line (region-beginning) (region-end))
+                              (format ":%s" (my-selected-str)))
+                             (t
+                              (format "%s,%s"
+                                      (line-number-at-pos (region-beginning))
+                                      (line-number-at-pos (region-end))))))
+                           (t
+                            (format ":%s" (thing-at-point 'symbol)))))
+           (cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name)))
+           (content (shell-command-to-string cmd)))
+      (when (string-match-p "no match" content)
+        ;; mark current function and try again
+        (mark-defun)
+        (setq range-or-func (format "%s,%s"
+                                    (line-number-at-pos (region-beginning))
+                                    (line-number-at-pos (region-end))))
+        (setq cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name))))
+      (message cmd)
+      (unless (featurep 'find-file-in-project) (require 'find-file-in-project))
+      (ffip-show-content-in-diff-mode (shell-command-to-string cmd)))))
 
+(eval-after-load 'magit
+  '(progn
+    (ivy-mode 1)))
+
+(provide 'init-git)
