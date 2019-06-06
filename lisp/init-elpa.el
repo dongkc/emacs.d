@@ -124,7 +124,6 @@
         ;; ;; {{ Option 2: tsinghua mirror repository
         ;; ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
         ;; ;; ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
-<<<<<<< HEAD
         ("melpa" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
         ("melpa-stable" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
         ;; ;; ("org" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
@@ -132,11 +131,6 @@
 
         ;; ("melpa" . "https://melpa.org/packages/")
         ;; ("melpa-stable" . "https://stable.melpa.org/packages/")
-=======
-        ;; ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
-        ;; ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
-        ;; }}
->>>>>>> upstream/master
         ))
 
 (defvar my-ask-elpa-mirror t)
