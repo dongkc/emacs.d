@@ -130,6 +130,7 @@
   (require 'init-keyfreq)
   (require 'init-httpd)
 
+  (require 'init-stm32)
   ;; projectile costs 7% startup time
 
   ;; misc has some crucial tools I need immediately

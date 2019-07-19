@@ -674,6 +674,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
  "ss" 'wg-create-workgroup ; save windows layout
  "se" 'evil-iedit-state/iedit-mode ; start iedit in emacs
  "sc" 'shell-command
+ "sr" 'sciter-build
  "ll" 'my-wg-switch-workgroup ; load windows layout
  "kk" 'scroll-other-window
  "jj" 'scroll-other-window-up

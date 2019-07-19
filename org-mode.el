@@ -819,6 +819,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (gnuplot . t)
          (clojure . t)
          (ledger . t)
+         (lisp . t)
          (org . t)
          (plantuml . t)
          (latex . t))))
