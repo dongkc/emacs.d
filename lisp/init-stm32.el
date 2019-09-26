@@ -191,6 +191,18 @@
   (kill-buffer "*gud-target extended-remote localhost:4242*")
 )
 
+(defun sciter-build ()
+  "test for sciter build"
+  (interactive)
+  (let ((dir (stm32-get-project-root-dir))
+        (name (stm32-get-project-name)))
+    (save-buffer)
+    (when dir
+      (shell-command (concat dir "packfolder " dir "res " dir "res.go -go")
+                     "*Messages*"
+                    "*Messages" ))
+      (async-shell-command (concat dir  "build.sh"))))
+
 (provide 'init-stm32)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; stm32.el ends here

@@ -653,8 +653,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
  "xnr" 'narrow-to-region
  "ycr" 'my-yas-reload-all
  "dw" 'delete-trailing-whitespace
- "=" 'increase-default-font-height
- "-" 'decrease-default-font-height
+ "=" 'cnfonts-increase-fontsize
+ "-" 'cnfonts-decrease-fontsize
  "wf" 'popup-which-function)
 ;; }}
 
