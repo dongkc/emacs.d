@@ -86,14 +86,9 @@
   (setq-default save-place t)))
 
 ;; {{ find-file-in-project (ffip)
-(defun my-git-versions ()
-  (let* ((git-cmd (concat "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an' "
-                          buffer-file-name)))
-    (nconc (nonempty-lines (shell-command-to-string "git branch --no-color --all"))
-           (nonempty-lines (shell-command-to-string git-cmd)))))
-
-
-(setq ffip-match-path-instead-of-filename t)
+(eval-after-load 'find-file-in-project
+  '(progn
+     (setq ffip-match-path-instead-of-filename t)))
 
 (defun neotree-project-dir ()
   "Open NeoTree using the git root."
@@ -162,7 +157,7 @@
 
 (defun lookup-doc-in-man ()
   (interactive)
-  (man (concat "-k " (my-use-selected-string-or-ask ""))))
+  (man (concat "-k " (my-use-selected-string-or-ask))))
 
 ;; @see http://blog.binchen.org/posts/effective-code-navigation-for-web-development.html
 ;; don't let the cursor go into minibuffer prompt
@@ -345,6 +340,7 @@ Keep the last num lines if argument num if given."
 ;; }}
 
 (defun my-multi-purpose-grep (n)
+  "Run different grep from N."
   (interactive "P")
   (cond
    ((not n)
@@ -417,6 +413,7 @@ Keep the last num lines if argument num if given."
                         "\\.mkv$"
                         "\\.mp[34]$"
                         "\\.avi$"
+                        "\\.wav$"
                         "\\.pdf$"
                         "\\.docx?$"
                         "\\.xlsx?$"
@@ -853,8 +850,7 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
 
 (defun vc-msg-show-code-setup ()
   "Use `ffip-diff-mode' instead of `diff-mode'."
-  (unless (featurep 'find-file-in-project)
-    (require 'find-file-in-project))
+  (unless (featurep 'find-file-in-project) (require 'find-file-in-project))
   (ffip-diff-mode))
 
 (add-hook 'vc-msg-show-code-hook 'vc-msg-show-code-setup)
@@ -924,6 +920,7 @@ If no region is selected. You will be asked to use `kill-ring' or clipboard inst
 (setq session-globals-max-string (* 8 1024 1024))
 (setq session-globals-include '(kill-ring
                                 (session-file-alist 100 t)
+                                my-dired-commands-history
                                 file-name-history
                                 search-ring
                                 regexp-search-ring))
@@ -1269,19 +1266,22 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ easygpg setup
 ;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
-(defadvice epg--start (around advice-epg-disable-agent disable)
-  "Make `epg--start' not able to find a gpg-agent."
-  (let ((agent (getenv "GPG_AGENT_INFO")))
-    (setenv "GPG_AGENT_INFO" nil)
-    ad-do-it
-    (setenv "GPG_AGENT_INFO" agent)))
+(eval-after-load 'epg
+  '(progn
+     (defadvice epg--start (around advice-epg-disable-agent disable)
+       "Make `epg--start' not able to find a gpg-agent."
+       (let ((agent (getenv "GPG_AGENT_INFO")))
+         (setenv "GPG_AGENT_INFO" nil)
+         ad-do-it
+         (setenv "GPG_AGENT_INFO" agent)))
 
-(unless (string-match-p "^gpg (GnuPG) 1.4"
-                        (shell-command-to-string (format "%s --version" epg-gpg-program)))
+     (unless (string-match-p "^gpg (GnuPG) 1.4"
+                             (shell-command-to-string (format "%s --version" epg-gpg-program)))
 
-  ;; `apt-get install pinentry-tty` if using emacs-nox
-  ;; Create `~/.gnupg/gpg-agent.conf' container one line `pinentry-program /usr/bin/pinentry-curses`
-  (setq epa-pinentry-mode 'loopback))
+       ;; `apt-get install pinentry-tty` if using emacs-nox
+       ;; Create `~/.gnupg/gpg-agent.conf'. has one line
+       ;; `pinentry-program /usr/bin/pinentry-curses`
+       (setq epa-pinentry-mode 'loopback))))
 ;; }}
 
 ;; {{ show current function name in `mode-line'
@@ -1327,14 +1327,16 @@ Including indent-buffer, which should not be called automatically on save."
      (t
       (message "Sorry, can't find pronunciation for \"%s\"" word)))))
 
-(defun my-pronounce-current-word ()
+(defun my-pronounce-current-word (&optional manual)
   "Pronounce current word."
-  (interactive)
+  (interactive "P")
   (when (memq major-mode '(nov-mode))
     ;; go to end of word to workaround `nov-mode' bug
     (forward-word)
     (forward-char -1))
-  (my-pronounce-word (thing-at-point 'word)))
+  (let* ((word (if manual (read-string "Word: ")
+                 (thing-at-point 'word))))
+    (my-pronounce-word word)))
 ;; }}
 
 ;; {{ epub setup
@@ -1359,9 +1361,10 @@ Including indent-buffer, which should not be called automatically on save."
   (if use-indirect-buffer
       (with-current-buffer (clone-indirect-buffer
                             (generate-new-buffer-name
-                             (concat (buffer-name) "-indirect-"
-                                     (number-to-string start) "-"
-                                     (number-to-string end)))
+                             (format "%s-indirect-:%s-:%s"
+                                     (buffer-name)
+                                     (line-number-at-pos start)
+                                     (line-number-at-pos end)))
                             'display)
         (narrow-to-region start end)
         (goto-char (point-min)))
@@ -1397,4 +1400,31 @@ If use-indirect-buffer is not nil, use `indirect-buffer' to hold the widen conte
         (t (error "Please select a region to narrow to"))))
 ;; }}
 
+;; {{ octave
+(add-auto-mode 'octave-mode "\\.m$")
+(add-hook 'octave-mode-hook
+          (lambda ()
+            (abbrev-mode 1)
+            (auto-fill-mode 1)
+            (if (eq window-system 'x)
+                (font-lock-mode 1))))
+;; }}
+
+;; {{ wgrep setup
+(eval-after-load 'wgrep
+  '(progn
+     ;; save the change after wgrep finishes the job
+     (setq wgrep-auto-save-buffer t)
+     (setq wgrep-too-many-file-length 2024)))
+;; }}
+
+;; {{ edit-server
+(defun edit-server-start-hook-setup ()
+  (when (string-match-p "\\(github\\|zhihu\\).com" (buffer-name))
+    (markdown-mode)))
+(add-hook 'edit-server-start-hook 'edit-server-start-hook-setup)
+(when (require 'edit-server nil t)
+  (setq edit-server-new-frame nil)
+  (edit-server-start))
+;; }}
 (provide 'init-misc)

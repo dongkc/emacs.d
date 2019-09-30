@@ -12,6 +12,17 @@
          retval)
      ,@clean-up))
 
+(defun my-add-subdirs-to-load-path (my-lisp-dir)
+  "Add sub-directories under MY-LISP-DIR into `load-path'."
+  (let* ((default-directory my-lisp-dir))
+    (setq load-path
+          (append
+           (delq nil
+                 (mapcar (lambda (dir)
+                           (unless (string-match-p "^\\." dir)
+                             (expand-file-name dir)))
+                         (directory-files "~/.emacs.d/site-lisp/")))
+           load-path))))
 
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
 (defun get-string-from-file (file)
@@ -126,10 +137,10 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 (defun my-selected-str ()
   (buffer-substring-no-properties (region-beginning) (region-end)))
 
-(defun my-use-selected-string-or-ask (hint)
+(defun my-use-selected-string-or-ask (&optional hint)
   "Use selected region or ask user input for string."
   (if (region-active-p) (my-selected-str)
-    (if (string= "" hint) (thing-at-point 'symbol)
+    (if (or (not hint) (string= "" hint)) (thing-at-point 'symbol)
       (read-string hint))))
 
 ;; Delete the current file
@@ -328,4 +339,15 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
                                     (when (memq status '(exit signal))
                                       (unless (string= (substring signal 0 -1) "finished")
                                         (message "Failed to run \"%s\"." ,command))))))))
+
+(defvar f-count nil)
+(defun f-incf (&optional first incr repeat)
+  (let* ((index (floor (/ (cl-incf f-count incr) (or repeat 1)))))
+    (+ (or first 1) (* (or incr 1) index))))
+
+(defun f-each (ls &optional repeat)
+  (let ((index (floor (/ (cl-incf f-count 0) (or repeat 1)))))
+    (if (< index (length ls)) (elt ls index)
+      (keyboard-quit))))
+
 (provide 'init-utils)
