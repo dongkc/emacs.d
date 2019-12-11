@@ -1,6 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (ivy-mode 1) ; it enables ivy UI for `kill-buffer'
+(defvar test 1)
 
 (eval-after-load 'counsel
   '(progn
@@ -108,23 +109,6 @@ Yank the file name at the same time.  FILTER is function to filter the collectio
       (forward-line (1- linenum)))))
 
 ;; grep by author is bad idea because it's too slow
-
-(defun counsel-git-show-file ()
-  "Find file in HEAD commit or whose commit hash is selected region."
-  (interactive)
-  (counsel-git-grep-or-find-api 'find-file
-                                (format "git --no-pager diff-tree --no-commit-id --name-only -r %s"
-                                        (counsel-read-keyword nil "HEAD"))
-                                "files from `git-show' "
-                                t))
-
-(defun counsel-git-diff-file ()
-  "Find file in `git diff'."
-  (interactive)
-  (counsel-git-grep-or-find-api 'find-file
-                                "git --no-pager diff --name-only"
-                                "files from `git-diff' "
-                                t))
 
 (defun counsel-insert-grepped-line (val)
   (let ((lst (split-string val ":")) text-line)
@@ -246,7 +230,8 @@ If N is not nil, only list directories in current project."
   (interactive)
   (cond
    ((region-active-p)
-    (counsel-git-grep counsel-git-grep-cmd-default (my-selected-str)))
+    ;; since 0.12.0, counsel change the api
+    (counsel-git-grep (my-selected-str) default-directory counsel-git-grep-cmd-default ))
    (t
     (counsel-git-grep))))
 
@@ -329,6 +314,43 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
         (setq str rlt))))
     (ivy--regex-plus str)))
 ;; }}
+
+(defun my-counsel-imenu ()
+  "Jump to a buffer position indexed by imenu."
+  (interactive)
+  (unless (featurep 'counsel) (require 'counsel))
+  (let* ((cands (counsel--imenu-candidates))
+         (pre-selected (thing-at-point 'symbol))
+         (pos (point))
+         closest)
+    (dolist (c cands)
+      (let* ((item (cdr c))
+             (m (cdr item)))
+        (when (<= (marker-position m) pos)
+          (cond
+           ((not closest)
+            (setq closest item))
+           ((< (- pos (marker-position m))
+               (- pos (marker-position (cdr closest))))
+            (setq closest item))))))
+    (if closest (setq pre-selected (car closest)))
+    (ivy-read "imenu items: " cands
+              :preselect pre-selected
+              :require-match t
+              :action #'counsel-imenu-action
+              :keymap counsel-imenu-map
+              :history 'counsel-imenu-history
+              :caller 'counsel-imenu)))
+
+(defun my-imenu-or-list-tag-in-current-file ()
+  "Combine the power of counsel-etags and imenu."
+  (interactive)
+  (cond
+   ((my-use-tags-as-imenu-function-p)
+    (let* ((imenu-create-index-function 'counsel-etags-imenu-default-create-index-function))
+      (my-counsel-imenu)))
+   (t
+    (my-counsel-imenu))))
 
 (eval-after-load 'ivy
   '(progn
