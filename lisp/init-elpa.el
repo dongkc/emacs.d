@@ -43,6 +43,8 @@
     ;; counsel
     ;; swiper
     ;; }}
+    lsp-treemacs
+    helm-lsp
     moe-theme
     ample-theme
     molokai-theme
@@ -127,7 +129,7 @@
 
         ;; ;; {{ Option 2: tsinghua mirror repository
         ;; ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
-        ;; ;; ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+        ("gnu"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
         ("melpa" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
         ("melpa-stable" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
         ;; ;; ("org" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")

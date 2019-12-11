@@ -159,16 +159,6 @@
 	(message (concat "Project name: " name))
 	name)
     (message "Wrong root directory")))
-(defun sciter-build ()
-  "test for sciter build"
-  (interactive)
-  (let ((dir (stm32-get-project-root-dir))
-        (name (stm32-get-project-name)))
-    (when dir
-      (shell-command (concat dir "packfolder " dir "res " dir "res.go -go")
-                     "*Messages*"
-                    "*Messages" ))
-      (async-shell-command (concat dir  "build.sh"))))
 
 (defun stm32-flash-to-mcu()
   "Upload compiled binary to stm32 through gdb."
