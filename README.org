@@ -1,5 +1,3 @@
-[[https://travis-ci.org/redguardtoo/emacs.d][https://travis-ci.org/redguardtoo/emacs.d.svg?branch=master]]
-
 * A fast and robust Emacs setup
 - Fast. Only *one second* to start up
 - Robust. Never crash after package upgrade. Packages could be installed without network
@@ -16,7 +14,7 @@
 - [[#installation][Installation]]
   - [[#install-in-normal-way][Install in normal way]]
   - [[#install-stable-version-optional][Install stable version (OPTIONAL)]]
-  - [[#third-party-command-line-program-optional][Third party command line program (OPTIONAL)]]
+  - [[#third-party-programs-optional][Third party programs (OPTIONAL)]]
 - [[#tutorial-optional][Tutorial (OPTIONAL)]]
   - [[#basic-tutorial][Basic tutorial]]
   - [[#evil-mode-tutorial][Evil-mode tutorial]]
@@ -29,6 +27,7 @@
   - [[#default-terminal-shell][Default terminal shell]]
   - [[#override-default-setup][Override default setup]]
   - [[#code-navigation-and-auto-completion][Code navigation and auto-completion]]
+  - [[#use-m-key-for-evil-matchit][Use "m" key for "evil-matchit"]]
   - [[#color-theme][Color theme]]
   - [[#grepreplace-text-in-project][Grep/Replace text in project]]
   - [[#hydraswipercounselivy][Hydra/Swiper/Counsel/Ivy]]
@@ -64,6 +63,7 @@
   - [[#directory-structure][Directory structure]]
   - [[#true-colors-in-terminal-emacs][True colors in terminal Emacs]]
   - [[#run-the-unit-test-before-git-commit][Run the unit test before git commit]]
+  - [[#python-environment][Python environment]]
 - [[#support-legacy-emacs-versions][Support legacy Emacs versions]]
   - [[#emacs-23][Emacs 23]]
   - [[#emacs-243][Emacs 24.3]]
@@ -114,7 +114,7 @@ No worries. You could answer "YES" to the question "Switch to faster package rep
 Now you are using local package repository =~/projs/melpa=.
 
 You can switch to online repositories like http://elpa.gnu.org or http://melpa.org by modifying =~/.emacs.d/lisp/init-elpa.el=.
-** Third party command line program (OPTIONAL)
+** Third party programs (OPTIONAL)
 *** Install
 Most command line programs can be installed through =default package manager=.
 
@@ -124,7 +124,7 @@ Most command line programs can be installed through =default package manager=.
 - any package manager at Linux (=apt= on Debian/Ubuntu, =yum= on Redhat, =pacman= on Arch, =emerge= on Gentoo ...)
 
 Some package managers allow you to install the program for current user. For example, python package manager =pip= has the option "[[https://packaging.python.org/tutorials/installing-packages/][--user]]".
-*** List of command line programs
+*** List of programs
 These programs are *OPTIONAL*.
 
 Please ignore error message related to command line programs. For example, if =aspell= and =hunspell= are not installed, you can ignore all the flyspell error messages.
@@ -220,10 +220,16 @@ Hunspell's default personal English dictionary is =$HOME/.hunspell_en_US=. The f
 - Optionally used by =M-x counsel-etags-grep= to search text in files
 - Run =curl https://sh.rustup.rs -sSf | sh= in shell to install [[https://www.rust-lang.org/][Rust]] then =cargo install ripgrep=
 - Tweak environment variable PATH so Emacs find ripgrep
+**** [[http://www.sbcl.org/][sbcl]]
+- Required by [[https://common-lisp.net/project/slime/][SLIME: The Superior Lisp Interaction Mode for Emacs]]
+**** ffmpeg
+- Some dired commands use ffmpeg to process video/audio
 **** LanguageTool
 It's Grammar, Style and Spell Checker
 - Download from [[https://languagetool.org/download/LanguageTool-stable.zip]].
 - Used by [[https://github.com/mhayashi1120/Emacs-langtool][Langtool]. Check its README for usage
+**** [[https://github.com/stsquad/emacs_chrome][edit browser's text area with Emacs]]
+Please install corresponding Chrome/Firefox addons.
 * Tutorial (OPTIONAL)
 Knowledge of Linux/Unix is required. At least you should know the meanings of "environment variable", "shell", "stdin", "stdout", "man", "info".
 ** Basic tutorial
@@ -312,6 +318,18 @@ To enable code auto-completion, =M-x counsel-etags-scan-code= at least once.
 Optionally, you can add =(add-hook 'after-save-hook 'counsel-etags-virtual-update-tags)= into your =.emacs= to automatically update tags file.
 
 No further setup is required.
+** Use "m" key for "evil-matchit"
+The default keybinding of =evil-matchit= is =%=. Its evil text object name is also =%=.
+
+You can use =m= instead of =%= as new keybinding and the text object name from =evil-matchit=.
+
+It's just one liner in =~/.custom.el=,
+#+begin_src javascript
+;; evil-matchit 2.3.0 is required
+(setq my-use-m-for-matchit t)
+#+end_src
+
+Use =,m= for =evil-set-marker= whose original keybinding is =m=.
 ** Color theme
 *** Preview color theme
 Check [[https://emacsthemes.com/]].
@@ -492,11 +510,13 @@ For languages GNU Global doesn't support, you can fall back to =company-etags= a
 
 You can also complete line by =M-x eacl-complete-line= and complete multi-lines statement by =M-x eacl-complete-multiline=.
 ** Chinese Input Method Editor
+Please note pyim is already built into this setup. You don't need install it through ELPA.
+
 Run =M-x toggle-input-method= to toggle input method [[https://github.com/tumashu/pyim][pyim]].
 
-If your *personal* dictionary =~/.eim/personal.pyim= exists, it will be used.
+Dictionaries with ".pyim" extension under the directory  =~/.eim/= are automatically loaded.
 
-You can =M-x my-pyim-export-dictionary= to export your personal words into =personal.pyim=. Check =init-chinese.el= for more information.
+Please =curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim= to install dictionary for pyim. 
 ** Install multiple versions of Emacs
 Run below commands in shell:
 #+begin_src bash
@@ -538,6 +558,16 @@ Other directories don't matter.
 On macOS/Linux/Cygwin, run =make githooks= to install hooks into =~/.emacs.d/.git/hooks=.
 
 Then unit test is run automatically before =git commit=.
+** Python environment
+This setup used [[https://github.com/jorgenschaefer/elpy][elpy (Emacs Python Development Environment)]]. The setup for python development is minimum, as you can see in =init-python.el=.
+
+If elpy warns you that the python environment is corrupt, you have two solutions.
+
+Solution 1, ignore the warning and turn off elpy by comment out =(elpy-enable)= in =init-python.el=. Then you won't have those python IDE things.
+
+Solution 2, fix your python environment. For example, if elpy gives the the error message =ImportError: No module named pkg_resources= on Ubuntu, a quick search will lead to [[https://askubuntu.com/questions/1006201/importerror-no-module-named-pkg-resources][this link.]] So a simple shell command =sudo apt install --reinstall python-pkg-resources python-setuptools= solves the problem.
+
+Solution 2 might be better because you couldn't do any serious coding anyway if the python environment is broken, .
 * Support legacy Emacs versions
 ** Emacs 23
 Version 1.2 of this setup is the last version to support Emacs v23.
