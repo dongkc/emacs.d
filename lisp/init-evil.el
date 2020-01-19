@@ -452,7 +452,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "kc" 'kill-ring-to-clipboard
   "fn" 'cp-filename-of-current-buffer
   "fp" 'cp-fullpath-of-current-buffer
-  "dj" 'dired-jump ;; open the dired from current file
+  "dj" 'dired-jump ;; op en the dired from current file
   "xd" 'dired
   "xo" 'ace-window
   "ff" 'toggle-full-window ;; I use WIN+F in i3
