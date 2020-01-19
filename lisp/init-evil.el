@@ -617,6 +617,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "ycr" 'my-yas-reload-all
   "=" 'cnfonts-increase-fontsize
   "-" 'cnfonts-decrease-fontsize
+  "dw" 'delete-trailing-whitespace
   "wf" 'popup-which-function)
 ;; }}
 
