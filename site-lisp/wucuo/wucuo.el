@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2018 Chen Bin
 ;;
-;; Version: 0.0.6
+;; Version: 0.0.7
 ;; Keywords: convenience
 ;; Author: Chen Bin <chenbin DOT sh AT gmail DOT com>
 ;; URL: http://github.com/redguardtoo/wucuo
@@ -60,6 +60,11 @@
   :type 'boolean
   :group 'wucuo)
 
+(defcustom wucuo-auto-turn-on-flyspell t
+  "Turn on `flyspell-mode' automatically after running `wucuo-start'."
+  :type 'boolean
+  :group 'wucuo)
+
 (defcustom wucuo-check-nil-font-face nil
   "If nil, ignore text without font face."
   :type 'sexp
@@ -89,6 +94,11 @@
     js2-function-param
     js2-object-property
     js2-object-property-access
+
+    ;; css
+    font-lock-builtin-face
+    css-selector
+    css-property
 
     ;; ReactJS
     rjsx-text
@@ -295,7 +305,7 @@ property of the major mode name."
 ;;;###autoload
 (defun wucuo-version ()
   "Output version."
-  (message "0.0.6"))
+  (message "0.0.7"))
 
 ;;;###autoload
 (defun wucuo-setup-major-mode (mode)
@@ -321,7 +331,12 @@ If FORCE is t, the major mode's own predicate setup."
   (setq flyspell-generic-check-word-predicate
         #'wucuo-generic-check-word-predicate)
 
-  (flyspell-mode 1))
+  ;; work around issue when calling `flyspell-small-region'
+  ;; can't show the overlay of error but can't delete overlay
+  (setq flyspell-large-region 1)
+
+  (when wucuo-auto-turn-on-flyspell
+    (flyspell-mode 1)))
 
 (provide 'wucuo)
 ;;; wucuo.el ends here
