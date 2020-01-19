@@ -8,7 +8,6 @@ anaconda-mode/
 /auto-save-list
 /.session
 /session.*
-/custom.el
 *.elc
 company-statistics-cache.el
 CVS
@@ -66,3 +65,5 @@ network-security.data
 *.ogg
 nov-places
 transient/
+cnfonts/
+smex-items
