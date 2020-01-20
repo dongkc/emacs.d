@@ -370,6 +370,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
 (require-package 'org-bullets)
 (require-package 'beacon)
 (require-package 'org-mime)
+(require-package 'auth-source-pass)
 ;; {{ Fixed expiring GNU ELPA keys
 ;; GNU ELPA GPG key will expire on Sep-2019. So we need install this package to
 ;; update key or else users can't install packages from GNU ELPA.

@@ -157,7 +157,7 @@
   ;; down all `require' statement. So we do this at the end of startup
   ;; NO ELPA package is dependent on "site-lisp/".
   (setq load-path (cdr load-path))
-  (my-add-subdirs-to-load-paht "~/.emacs.d/site-lisp")
+  (my-add-subdirs-to-load-path "~/.emacs.d/site-lisp")
 
   (unless (boundp 'startup-now)
     ;; my personal setup, other major-mode specific setup need it.
