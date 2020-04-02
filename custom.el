@@ -36,3 +36,5 @@
 (auth-source-pass-enable)
 
 (load-theme 'sanityinc-tomorrow-eighties t)
+ (setq exec-path (append exec-path '("/Users/dongkc/flutter/bin/")))
+(toggle-frame-fullscreen)
