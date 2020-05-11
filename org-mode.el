@@ -821,6 +821,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (ledger . t)
          (lisp . t)
          (org . t)
+         (shell . t)
          (plantuml . t)
          (latex . t))))
 
