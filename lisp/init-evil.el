@@ -589,7 +589,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "7" 'winum-select-window-7
   "8" 'winum-select-window-8
   "9" 'winum-select-window-9
-  "xm" 'counsel-M-x
+  "xm" 'helm-M-x
   "xx" 'er/expand-region
   ;; "xf" 'counsel-find-file
   "xf" 'helm-find-files
