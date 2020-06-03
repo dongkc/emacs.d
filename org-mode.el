@@ -820,6 +820,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (clojure . t)
          (ledger . t)
          (lisp . t)
+         (restclient . t)
          (org . t)
          (shell . t)
          (plantuml . t)

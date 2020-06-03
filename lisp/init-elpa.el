@@ -116,6 +116,9 @@
     smex
     beacon
     org-bullets
+    restclient
+    ob-restclient
+    calibredb
     company-c-headers
     company-statistics)
   "Packages to install from melpa-unstable.")

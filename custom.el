@@ -6,8 +6,8 @@
 
 (setq debug-on-error t)
 (setq linum-format "%d ")
-(setq c-basic-offset 2)
-(setq-default js2-basic-offset 2)
+(setq c-basic-offset 4)
+(setq-default js2-basic-offset 4)
 
 ;; org mode setup
 (load (concat user-emacs-directory "org-mode.el"))
@@ -27,6 +27,7 @@
 ;; for sciter tiscript file extension
 (add-to-list 'auto-mode-alist '("\\.tis\\'" . js2-mode))
 
+(add-to-list 'auto-mode-alist '("\\.xaml\\'" . xml-mode))
 ;; for legacy code written with windows keil, which coding system is default chinese-gb18030
 ;; (add-hook 'c-mode-hook (lambda ()
 ;;                          (if (string-match-p "edog" buffer-file-name)
