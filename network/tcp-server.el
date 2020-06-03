@@ -104,6 +104,9 @@ An answer can be sent using `tcp-server-send' (simply use `tcp-server-send' to m
 		       (function :tag "Filter")))
   :group 'tcp-server)
 
+;; (setq tcp-server-list
+;;       (quote ("127.0.0.1" 8000 nil)))
+
 (defun tcp-server-sentinel (proc msg)
   ".
 Argument PROC process.
