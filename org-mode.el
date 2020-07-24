@@ -796,7 +796,8 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (require 'ox-ascii)
 
 (setq org-ditaa-jar-path "~/git/org-mode/contrib/scripts/ditaa.jar")
-(setq org-plantuml-jar-path "/opt/plantuml/plantuml.jar")
+(setq org-plantuml-jar-path "/usr/share/java/plantuml/plantuml.jar")
+;; (setq org-plantuml-jar-path "/opt/plantuml/plantuml.jar")
 
 (add-hook 'org-babel-after-execute-hook 'bh/display-inline-images 'append)
 
@@ -820,6 +821,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (clojure . t)
          (ledger . t)
          (lisp . t)
+         (sql . t)
          (org . t)
          (shell . t)
          (plantuml . t)
