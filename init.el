@@ -88,7 +88,7 @@
 ;; ("\\`/:" . file-name-non-special))
 ;; Which means on every .el and .elc file loaded during start up, it has to runs those regexps against the filename.
 (let* ((file-name-handler-alist nil))
-  (require 'init-elpa)
+  ;; (require-init 'init-elpa)
 
   ;; ;; {{
   ;; (require 'benchmark-init-modes)
@@ -97,7 +97,7 @@
   ;; ;; `benchmark-init/show-durations-tree' to show benchmark result
   ;; ;; }}
 
-  (require 'init-autoload)
+  (require-init 'init-autoload)
   ;; `package-initialize' takes 35% of startup time
   ;; need check https://github.com/hlissner/doom-emacs/wiki/FAQ#how-is-dooms-startup-so-fast for solution
   (require-init 'init-modeline)
@@ -138,7 +138,7 @@
   (require-init 'init-keyfreq t)
   (require-init 'init-httpd t)
 
-  (require 'init-stm32)
+  (require-init 'init-stm32)
   ;; projectile costs 7% startup time
 
   ;; don't play with color-theme in light weight mode
