@@ -144,12 +144,12 @@
         ;; ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/")
         ;; ;; }}
 
-        ;; ;; {{ Option 2: tsinghua mirror repository
-        ;; ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
+        ;; {{ Option 2: tsinghua mirror repository
+        ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
         ("gnu"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
         ("melpa" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
         ("melpa-stable" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
-        ;; ;; ("org" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
+        ;; ("org" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
         ;; }}
 
         ;; ("melpa" . "https://melpa.org/packages/")

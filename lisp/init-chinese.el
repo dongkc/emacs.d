@@ -81,12 +81,12 @@
      ;;  down pyim performance
      ;; `curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim`
 
-     (if (and my-pyim-directory
-              (file-exists-p (my-pyim-personal-dict "pyim-greatdict.pyim")))
-         (add-to-list 'pyim-dicts (list :name "pyim-greatdict" :file (my-pyim-personal-dict "pyim-greatdict.pyim"))))
+     ;; (if (and my-pyim-directory
+     ;;          (file-exists-p (my-pyim-personal-dict "pyim-greatdict.pyim")))
+     ;;     (add-to-list 'pyim-dicts (list :name "pyim-greatdict" :file (my-pyim-personal-dict "pyim-greatdict.pyim"))))
 
      ;; don't use tooltip
-     (setq pyim-use-tooltip 'popup)))
+     (setq pyim-use-tooltip 'posframe)))
 ;; }}
 
 ;; {{ cal-china-x setup

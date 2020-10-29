@@ -519,7 +519,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "cxr" 'org-clock-report ; `C-c C-x C-r'
   "qq" 'my-multi-purpose-grep
   "dd" 'counsel-etags-grep-current-directory
-  "rr" 'my-counsel-recentf
+  "rr" 'helm-recentf
   "rh" 'counsel-yank-bash-history ; bash history command => yank-ring
   "rd" 'counsel-recent-directory
   "da" 'diff-region-tag-selected-as-a
@@ -556,6 +556,10 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "hv" 'describe-variable
   "gt" 'counsel-gtags-dwim ; jump from reference to definition or vice versa
   "gr" 'counsel-gtags-find-symbol
+  ;; C#语言跳转
+  ;; "gd" 'omnisharp-go-to-definition
+  ;; "gr
+
   "gu" 'counsel-gtags-update-tags
   "fb" 'flyspell-buffer
   "fe" 'flyspell-goto-next-error
@@ -591,8 +595,11 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "9" 'winum-select-window-9
   "xm" 'counsel-M-x
   "xx" 'er/expand-region
-  ;; "xf" 'counsel-find-file
   "xf" 'helm-find-files
+  "ps" 'helm-projectile-switch-project
+  "pf" 'helm-projectile-find-file
+  "zs" 'my/coke-start
+  "zd" 'my/coke-stop
   "xb" 'ivy-switch-buffer-by-pinyin
   "xh" 'mark-whole-buffer
   "xk" 'kill-buffer
@@ -701,7 +708,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
  "jlt" 'js2r-log-this
  "jsl" 'js2r-forward-slurp
  "jba" 'js2r-forward-barf
- "jk" 'js2r-kill)
+ "jk" 'js2r-kill
+ )
 ;; }}
 
 ;; Press `dd' to delete lines in `wgrep-mode' in evil directly

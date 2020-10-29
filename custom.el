@@ -1,13 +1,15 @@
 (set-buffer-file-coding-system 'unix 't)
 (require 'cnfonts)
+(require 'pyim)
+;; font setting here, when changing font, run cn-font-ui cmd again
 (cnfonts-enable)
 ;;(cnfonts-set-spacemacs-fallback-fonts)
 ;; (setq cnfonts-use-face-font-rescale t)
 
-(setq debug-on-error t)
+(setq debug-on-error nil)
 (setq linum-format "%d ")
 (setq c-basic-offset 4)
-(setq-default js2-basic-offset 4)
+(setq-default js2-basic-offset 2)
 
 ;; org mode setup
 (load (concat user-emacs-directory "org-mode.el"))
@@ -20,50 +22,105 @@
 ;;treate my right option as control in my macbook
 (setq mac-right-option-modifier 'control)
 (beacon-mode 1)
-;;(require 'org-bullets)
+(require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-;; (set-language-environment "Chinese-GB18030")
+(setq org-bullets-face-name (quote org-bullet-face))
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+;; (setq org-bullets-bullet-list '("✙" "♱" "♰" "☥" "✞" "✟" "✝" "†" "✠" "✚" "✜" "✛" "✢" "✣" "✤" "✥"))
+
+;; set the fall-back font
+;; this is critical for displaying various unicode symbols, such as those used in my init-org.el settings
+;; http://endlessparentheses.com/manually-choose-a-fallback-font-for-unicode.html
+(set-fontset-font "fontset-default" nil
+                  (font-spec :size 20 :name "Symbola"))
 
 ;; for sciter tiscript file extension
 (add-to-list 'auto-mode-alist '("\\.tis\\'" . js2-mode))
 
 (add-to-list 'auto-mode-alist '("\\.xaml\\'" . xml-mode))
-;; for legacy code written with windows keil, which coding system is default chinese-gb18030
-;; (add-hook 'c-mode-hook (lambda ()
-;;                          (if (string-match-p "edog" buffer-file-name)
-;;                              (revert-buffer-with-coding-system 'chinese-gb18030 t))))
 
 (require 'auth-source-pass)
 (auth-source-pass-enable)
 
-(load-theme 'sanityinc-tomorrow-eighties t)
-
 (setq exec-path (append exec-path '("/Users/dongkc/flutter/bin/")))
 (toggle-frame-fullscreen)
 
-(eval-after-load
-  'company
-  '(add-to-list 'company-backends #'company-omnisharp))
+(setq elfeed-feeds
+      '("http://nullprogram.com/feed/"
+        "https://planet.emacslife.com/atom.xml"))
 
-(defun my-csharp-mode-setup ()
-  (omnisharp-mode)
-  (company-mode)
-  (flycheck-mode)
+;; (require 'auctex)
+;; (add-hook 'TeX-mode-hook
+;;   (lambda ()
+;;     (setq TeX-command-extra-options "-file-line-error -shell-escape")
+;;   )
+;; )
+;; (setq TeX-source-correlate-mode t)
+;; (add-to-list 'TeX-command-list '("XeLaTeX" "%`xelatex %(extraopts)%(mode)%' %t" TeX-run-TeX nil t))
 
-  (setq indent-tabs-mode nil)
-  (setq c-syntactic-indentation t)
-  (c-set-style "ellemtel")
-  (setq c-basic-offset 4)
-  (setq truncate-lines t)
-  (setq tab-width 4)
-  (setq evil-shift-width 4)
+;; (define-key lsp-mode-map [remap xref-find-apropos] #'helm-lsp-workspace-symbol)
+;; (require 'lsp-mode)
+;; (with-eval-after-load 'lsp-mode
+;;   (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
 
-  ;csharp-mode README.md recommends this too
-  ;(electric-pair-mode 1)       ;; Emacs 24
-  ;(electric-pair-local-mode 1) ;; Emacs 25
+;; (setq lsp-keymap-prefix "c-,")
 
-  (local-set-key (kbd "C-c r r") 'omnisharp-run-code-action-refactoring)
-  (local-set-key (kbd "C-c C-c") 'recompile))
+(add-hook 'go-mode-hook 'lsp-deferred)
 
-(add-hook 'csharp-mode-hook 'my-csharp-mode-setup t)
-(setq omnisharp-expected-server-version "1.35.1")
+(use-package lsp-mode
+  :ensure t
+  :init (setq lsp-keymap-prefix "C-c C-l"
+              lsp-prefer-flymake nil)
+  :commands (lsp make-lsp-client lsp-register-client)
+  :hook (lsp-mode . lsp-enable-which-key-integration))
+
+(use-package lsp-ui
+  :ensure t
+  :init (setq lsp-ui-flycheck-enable t)
+  :commands lsp-ui-mode)
+
+(use-package company-lsp
+  :ensure t
+  :commands company-lsp)
+
+(use-package dap-mode
+  :ensure t :after lsp-mode
+  :config
+  (dap-mode t)
+  (dap-ui-mode t))
+
+(setq browse-url-generic-program "chrome")
+(setq web-mode-markup-indent-offset 2)
+(setq web-mode-css-indent-offset 2)
+(setq web-mode-code-indent-offset 2)
+(setq nxml-child-indent 4 nxml-attribute-indent 4)
+
+(defun dos2unix ()
+  "Not exactly but it's easier to remember"
+  (interactive)
+  (set-buffer-file-coding-system 'unix 't) )
+
+(load-theme 'sanityinc-tomorrow-eighties t)
+;; (desktop-save-mode 1)
+(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "C-x C-m") 'helm-M-x)
+(global-set-key (kbd "M-y") 'helm-show-kill-ring)
+(global-set-key (kbd "C-x b") 'helm-mini)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
+
+(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "C-x C-m") 'helm-M-x)
+(global-set-key (kbd "M-y") 'helm-show-kill-ring)
+(global-set-key (kbd "C-x b") 'helm-mini)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
+
+(global-set-key (kbd "C-c h o") 'helm-occur)
+(global-set-key (kbd "C-h SPC") 'helm-all-mark-rings)
+(global-set-key (kbd "C-c h x") 'helm-register)
+
+(projectile-global-mode)
+(setq projectile-completion-system 'helm)
+(helm-projectile-on)
+(setq projectile-indexing-method 'alien)
+
+ (with-eval-after-load 'eshell (set-language-environment "chinese-GB"))

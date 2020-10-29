@@ -822,6 +822,10 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (lisp . t)
          (restclient . t)
          (org . t)
+         (go . t)
+         (C . t)
+         (sql . t)
+         (processing . t)
          (shell . t)
          (plantuml . t)
          (latex . t))))
@@ -1880,3 +1884,5 @@ Late deadlines first, then scheduled, then non-late deadlines"
 (setq org-odd-levels-only nil)
 
 (run-at-time "00:59" 3600 'org-save-all-org-buffers)
+
+(require 'ob-async)
