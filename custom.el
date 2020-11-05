@@ -124,3 +124,24 @@
 (setq projectile-indexing-method 'alien)
 
  (with-eval-after-load 'eshell (set-language-environment "chinese-GB"))
+
+(require 'quelpa-use-package)
+(use-package alpha-org
+  :quelpa (alpha-org :fetcher github :repo "alphapapa/alpha-org"))
+
+
+(server-start)
+(require 'org-protocol)
+
+(defun transform-square-brackets-to-round-ones(string-to-transform)
+  "Transforms [ into ( and ] into ), other chars left unchanged."
+  (concat 
+  (mapcar #'(lambda (c) (if (equal c ?[) ?\( (if (equal c ?]) ?\) c))) string-to-transform))
+  )
+
+(setq org-capture-templates `(
+	("p" "Protocol" entry (file+headline ,(concat org-directory "/notes.org") "Inbox")
+        "* %^{Title}\n[[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")	
+	("L" "Protocol Link" entry (file+headline ,(concat org-directory "/notes.org") "Inbox")
+        "* %? [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n" :kill-buffer t)
+))

@@ -795,8 +795,11 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (require 'ox-latex)
 (require 'ox-ascii)
 
-(setq org-ditaa-jar-path "~/git/org-mode/contrib/scripts/ditaa.jar")
-(setq org-plantuml-jar-path "/opt/plantuml/plantuml.jar")
+;; (setq org-ditaa-jar-path "~/git/org-mode/contrib/scripts/ditaa.jar")
+(if (eq system-type 'windows-nt)
+    (progn
+      (setq org-ditaa-jar-path "~/bin/ditaa0_9.jar")
+      (setq org-plantuml-jar-path "C:/Users/Administrator/scoop/apps/plantuml/1.2020.14/plantuml.jar")))
 
 (add-hook 'org-babel-after-execute-hook 'bh/display-inline-images 'append)
 
