@@ -799,7 +799,10 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (if (eq system-type 'windows-nt)
     (progn
       (setq org-ditaa-jar-path "~/bin/ditaa0_9.jar")
-      (setq org-plantuml-jar-path "C:/Users/Administrator/scoop/apps/plantuml/1.2020.14/plantuml.jar")))
+      (setq org-plantuml-jar-path "C:/Users/Administrator/scoop/apps/plantuml/1.2020.14/plantuml.jar"))
+  (progn
+    (setq org-ditaa-jar-path "~/git/org-mode/contrib/scripts/ditaa.jar")
+    (setq org-plantuml-jar-path "/usr/share/java/plantuml/plantuml.jar")))
 
 (add-hook 'org-babel-after-execute-hook 'bh/display-inline-images 'append)
 
@@ -824,6 +827,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (ledger . t)
          (lisp . t)
          (restclient . t)
+         (sql . t)
          (org . t)
          (go . t)
          (C . t)
