@@ -1,12 +1,20 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Navigate window layouts with "C-c <left>" and "C-c <right>"
-(winner-mode 1)
-;; copied from http://puntoblogspot.blogspot.com/2011/05/undo-layouts-in-emacs.html
-(global-set-key (kbd "C-x 4 u") 'winner-undo)
-(global-set-key (kbd "C-x 4 U") 'winner-redo)
+(my-run-with-idle-timer 2 #'winner-mode)
 
-(my-ensure 'find-file-in-project)
+;; @see https://emacs-china.org/t/emacs-builtin-mode/11937/63
+;; press u undo and r to redo
+(defun my-transient-winner-undo ()
+  "Transient version of `winner-undo'."
+  (interactive)
+  (my-setup-extra-keymap '(("u" winner-undo)
+                           ("r" winner-redo))
+                         "Winner: [u]ndo [r]edo [q]uit"
+                         'winner-undo))
+
+(global-set-key (kbd "C-x 4 u") 'my-transient-winner-undo)
+
 (global-set-key (kbd "C-x 2") 'split-window-vertically)
 (global-set-key (kbd "C-x 3") 'split-window-horizontally)
 
@@ -40,30 +48,29 @@
         (select-window first-win)
         (if this-win-2nd (other-window 1))))))
 
-(defun rotate-windows ()
+(defun my-rotate-windows ()
   "Rotate windows in clock-wise direction."
   (interactive)
-  (cond ((not (> (count-windows)1))
-         (message "You can't rotate a single window!"))
-        (t
-         (setq i 1)
-         (setq numWindows (count-windows))
-         (while (< i numWindows)
-           (let* (
-                  (w1 (elt (window-list) i))
-                  (w2 (elt (window-list) (+ (% i numWindows) 1)))
+  (cond
+   ((not (> (count-windows)1))
+    (message "You can't rotate a single window!"))
+   (t
+    (let* ((i 1)
+           (num-windows (count-windows)))
+      (while (< i num-windows)
+        (let* ((w1 (elt (window-list) i))
+               (w2 (elt (window-list) (+ (% i num-windows) 1)))
 
-                  (b1 (window-buffer w1))
-                  (b2 (window-buffer w2))
+               (b1 (window-buffer w1))
+               (b2 (window-buffer w2))
 
-                  (s1 (window-start w1))
-                  (s2 (window-start w2))
-                  )
-             (set-window-buffer w1 b2)
-             (set-window-buffer w2 b1)
-             (set-window-start w1 s2)
-             (set-window-start w2 s1)
-             (setq i (1+ i)))))))
+               (s1 (window-start w1))
+               (s2 (window-start w2)))
+          (set-window-buffer w1 b2)
+          (set-window-buffer w2 b1)
+          (set-window-start w1 s2)
+          (set-window-start w2 s1)
+          (setq i (1+ i))))))))
 
 ;; https://github.com/abo-abo/ace-window
 ;; `M-x ace-window ENTER m` to swap window
@@ -83,13 +90,12 @@
       (define-key map (kbd "M-8") 'winum-select-window-8)
       map))
 
-(my-ensure 'winum)
 (with-eval-after-load 'winum
   (setq winum-format "%s")
   (setq winum-mode-line-position 0)
-  (set-face-attribute 'winum-face nil :foreground "DeepPink" :underline "DeepPink" :weight 'bold)
-  (winum-mode 1))
+  (set-face-attribute 'winum-face nil :foreground "DeepPink" :underline "DeepPink" :weight 'bold))
 ;; }}
+(winum-mode 1)
 
 (defun my-toggle-full-window()
   "Toggle full view of selected window."

@@ -1,10 +1,28 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (defun my-initialize-package ()
-  (unless nil ;package--initialized
-    ;; optimization, no need to activate all the packages so early
-    (setq package-enable-at-startup nil)
-    (package-initialize)))
+  ;; optimization, no need to activate all the packages so early
+  (cond
+   (*emacs27*
+    ;; you need run `M-x package-quickstart-refresh' at least once
+    ;; to generate file "package-quickstart.el'.
+    ;; It contains the `autoload' statements for all packages.
+    ;; Please note once this file is created, you can't automatically
+    ;; install missing package any more
+    ;; You also need need re-generate this file if any package is upgraded.
+    (setq package-quickstart t)
+
+    ;; esup need call `package-initialize'
+    ;; @see https://github.com/jschaf/esup/issues/84
+    (when (or (featurep 'esup-child)
+              (fboundp 'profile-dotemacs)
+              (not (file-exists-p (concat my-emacs-d "elpa")))
+              (my-vc-merge-p)
+              noninteractive)
+      (package-initialize)))
+   (t
+    ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
+    (package-initialize))))
 
 (my-initialize-package)
 
@@ -12,25 +30,32 @@
 ;; Please add the package name into `melpa-include-packages'
 ;; if it's not visible after  `list-packages'.
 (defvar melpa-include-packages
-  '(ace-window ; lastest stable is released on year 2014
+  '(ace-window ; latest stable is released on year 2014
+    ace-pinyin
+    pos-tip
+    web-mode
+    racket-mode
     auto-package-update
+    web-mode
+    kv
+    esxml ; nov is dependent on latest esxml
     nov
     bbdb
+    esup ; Emacs start up profiler
     native-complete
     company-native-complete
     js2-mode ; need new features
     git-timemachine ; stable version is broken when git rename file
-    evil-textobj-syntax
+    highlight-symbol
     undo-fu
     command-log-mode
+    evil ; @see https://github.com/emacs-evil/evil/commit/19cc5f8eef8bfffdec8082b604c7129782acb332
     ;; lsp-mode ; stable version has performance issue, but unstable version sends too many warnings
-    edit-server ; use Emacs to edit textarea in browser, need browser addon
     vimrc-mode
     rjsx-mode ; fixed the indent issue in jsx
     package-lint ; for melpa pull request only
     auto-yasnippet
     typescript-mode ; the stable version lacks important feature (highlight function names)
-    websocket ; to talk to the browser
     evil-exchange
     evil-find-char-pinyin
     ;; {{ dependencies of stable realgud are too old
@@ -41,7 +66,6 @@
     iedit
     undo-tree
     js-doc
-    jss ; remote debugger of browser
     ;; {{ since stable v0.13.0 released, we go back to stable version
     ;; ivy
     ;; counsel
@@ -56,6 +80,7 @@
     molokai-theme
     spacemacs-theme
     leuven-theme
+    elpy ; use latest elpy since Python package API changes
     sublime-themes
     tangotango-theme
     darkburn-theme
@@ -82,11 +107,9 @@
     distinguished-theme
     tao-theme
     ;; }}
-    slime
     groovy-mode
     company ; I won't wait another 2 years for stable
     simple-httpd
-    dsvn
     findr
     mwe-log-commands
     noflet
@@ -98,6 +121,8 @@
     legalese
     htmlize
     pyim-basedict
+    pyim-wbdict
+    pyim
     scratch
     session
     inflections
@@ -211,6 +236,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; On-demand installation of packages
 (defun require-package (package &optional min-version no-refresh)
   "Ask elpa to install given PACKAGE."
+  (my-ensure 'package)
   (cond
    ((package-installed-p package min-version)
     t)
@@ -230,7 +256,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'avy)
 (require-package 'popup) ; some old package need it
 (require-package 'auto-yasnippet)
-(require-package 'ace-link)
 (require-package 'csv-mode)
 (require-package 'expand-region) ; I prefer stable version
 (require-package 'fringe-helper)
@@ -241,7 +266,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'lua-mode)
 (require-package 'yaml-mode)
 (require-package 'paredit)
-(require-package 'xr) ; required by pyim
 (require-package 'findr)
 (require-package 'diredfl) ; font lock for `dired-mode'
 (require-package 'pinyinlib)
@@ -250,18 +274,16 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'nvm)
 (require-package 'writeroom-mode)
 (require-package 'haml-mode)
-(require-package 'scss-mode)
 (require-package 'markdown-mode)
 (require-package 'link)
 (require-package 'connection)
 (require-package 'dictionary) ; dictionary requires 'link and 'connection
-(require-package 'htmlize)
+(require-package 'htmlize) ; prefer stable version
 (require-package 'jade-mode)
 (require-package 'diminish)
 (require-package 'scratch)
 (require-package 'rainbow-delimiters)
 (require-package 'textile-mode)
-(require-package 'dsvn)
 (require-package 'git-timemachine)
 (require-package 'exec-path-from-shell)
 (require-package 'ivy)
@@ -269,7 +291,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'counsel) ; counsel => swiper => ivy
 (require-package 'find-file-in-project)
 (require-package 'counsel-bbdb)
-(require-package 'ibuffer-vc)
 (require-package 'command-log-mode)
 (require-package 'regex-tool)
 (require-package 'groovy-mode)
@@ -309,12 +330,10 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'neotree)
 (require-package 'hydra)
 (require-package 'ivy-hydra) ; @see https://oremacs.com/2015/07/23/ivy-multiaction/
-(require-package 'pyim-basedict) ; it's default pyim dictionary
 (require-package 'web-mode)
 (require-package 'emms)
 (require-package 'iedit)
 (require-package 'websocket) ; for debug debugging of browsers
-(require-package 'jss)
 (require-package 'undo-tree)
 (require-package 'evil)
 (require-package 'evil-escape)
@@ -325,10 +344,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'evil-nerd-commenter)
 (require-package 'evil-surround)
 (require-package 'evil-visualstar)
-(require-package 'evil-args)
-(require-package 'evil-textobj-syntax)
 (require-package 'undo-fu)
-(require-package 'slime)
 (require-package 'counsel-css)
 (require-package 'auto-package-update)
 (require-package 'keyfreq)
@@ -338,16 +354,18 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'elpa-mirror)
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
 (require-package 'color-theme)
-;; emms v5.0 need seq
-(require-package 'seq)
 (require-package 'visual-regexp) ;; Press "M-x vr-*"
 (require-package 'vimrc-mode)
 (require-package 'nov) ; read epub
 (require-package 'rust-mode)
-(require-package 'benchmark-init)
 ;; (require-package 'langtool) ; my own patched version is better
 (require-package 'typescript-mode)
-(require-package 'edit-server)
+;; run "M-x pdf-tool-install" at debian and open pdf in GUI Emacs
+(require-package 'pdf-tools)
+(require-package 'pyim)
+(require-package 'pyim-wbdict) ; someone may use wubi IME, not me
+(require-package 'pyim-basedict)
+(require-package 'esup)
 
 ;; extra packages depends
 (require-package 'company-ctags)
@@ -365,17 +383,23 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'gnu-elpa-keyring-update)
 ;; }}
 
-(when *emacs26*
-  ;; org => ppt, org v8.3 is required (Emacs 25 uses org v8.2)
-  (require-package 'org-re-reveal))
+;; org => ppt
+(require-package 'org-re-reveal)
 
 (defun my-install-popular-themes (popular-themes)
   "Install POPULAR-THEMES from melpa."
   (dolist (theme popular-themes)
     (require-package theme)))
 
-(when *emacs25*
-  (require-package 'magit) ; Magit 2.12 is the last feature release to support Emacs 24.4.
+(require-package 'magit)
+(require-package 'ace-pinyin)
+(require-package 'which-key)
+(require-package 'highlight-symbol)
+;; org-roam requires new version of org-mode bundled with Emacs 27
+(when *emacs27* (require-package 'org-roam))
+
+;; speed up CI
+(unless my-disable-idle-timer
   ;; most popular 100 themes
   (my-install-popular-themes
    '(
@@ -483,6 +507,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
      zenburn-theme
      zerodark-theme
      )))
+
 ;; }}
 
 ;; kill buffer without my confirmation

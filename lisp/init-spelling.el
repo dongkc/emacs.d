@@ -1,63 +1,17 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; avoid spell-checking doublon (double word) in certain major modes
-(defvar my-flyspell-check-doublon t
-  "Check doublon (double word) when calling `flyspell-highlight-incorrect-region'.")
- (make-variable-buffer-local 'my-flyspell-check-doublon)
-
 (defvar my-default-spell-check-language "en_US"
   "Language used by aspell and hunspell CLI.")
 
 (with-eval-after-load 'flyspell
-  ;; {{ flyspell setup for web-mode
-  (defun my-web-mode-flyspell-verify ()
-    (let* ((f (get-text-property (- (point) 1) 'face))
-           rlt)
-      (cond
-       ;; Check the words whose font face is NOT in below *blacklist*
-       ((not (memq f '(web-mode-html-attr-value-face
-                       web-mode-html-tag-face
-                       web-mode-html-attr-name-face
-                       web-mode-constant-face
-                       web-mode-doctype-face
-                       web-mode-keyword-face
-                       web-mode-comment-face ;; focus on get html label right
-                       web-mode-function-name-face
-                       web-mode-variable-name-face
-                       web-mode-css-property-name-face
-                       web-mode-css-selector-face
-                       web-mode-css-color-face
-                       web-mode-type-face
-                       web-mode-block-control-face)))
-        (setq rlt t))
-       ;; check attribute value under certain conditions
-       ((memq f '(web-mode-html-attr-value-face))
-        (save-excursion
-          (search-backward-regexp "=['\"]" (line-beginning-position) t)
-          (backward-char)
-          (setq rlt (string-match "^\\(value\\|class\\|ng[A-Za-z0-9-]*\\)$"
-                                  (or (thing-at-point 'symbol) "")))))
-       ;; finalize the blacklist
-       (t
-        (setq rlt nil)))
-      ;; If rlt is t, it's a typo. If nil, not a typo.
-      rlt))
-  (put 'web-mode 'flyspell-mode-predicate 'my-web-mode-flyspell-verify)
-  ;; }}
+  ;; You can also use "M-x ispell-word" or hotkey "M-$". It pop up a multiple choice
+  ;; @see http://frequal.com/Perspectives/EmacsTip03-FlyspellAutoCorrectWord.html
+  (global-set-key (kbd "C-c s") 'flyspell-auto-correct-word)
 
   ;; better performance
-  (setq flyspell-issue-message-flag nil)
+  (setq flyspell-issue-message-flag nil))
 
   ;; flyspell-lazy is outdated and conflicts with latest flyspell
-
-  (defun my-flyspell-highlight-incorrect-region-hack (orig-func &rest args)
-    "Don't mark doublon (double words) as typo."
-    (let* ((beg (nth 0 args))
-           (end (nth 1 args))
-           (poss (nth 2 args)))
-      (when (or my-flyspell-check-doublon (not (eq 'doublon poss)))
-        (apply orig-func args))))
-  (advice-add 'flyspell-highlight-incorrect-region :around #'my-flyspell-highlight-incorrect-region-hack))
 
 ;; Basic Logic Summary:
 ;; If (aspell is installed) { use aspell}
@@ -148,6 +102,7 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
     ;; If it's nil, Emacs tries to automatically set up the dictionaries.
     (when (boundp 'ispell-hunspell-dictionary-alist)
       (setq ispell-hunspell-dictionary-alist ispell-local-dictionary-alist)))
+
    (t (setq ispell-program-name nil)
       (message "You need install either aspell or hunspell for ispell"))))
 
@@ -168,16 +123,17 @@ When fixing a typo, avoid pass camel case option to cli program."
 (advice-add 'ispell-word :around #'my-ispell-word-hack)
 (advice-add 'flyspell-auto-correct-word :around #'my-ispell-word-hack)
 
-(defun text-mode-hook-setup ()
-  ;; Turn off RUN-TOGETHER option when spell check text-mode
-  (setq-local ispell-extra-args (my-detect-ispell-args))
-  (my-ensure 'wucuo)
-  (wucuo-start))
-(add-hook 'text-mode-hook 'text-mode-hook-setup)
+(defvar my-disable-wucuo nil
+  "Disable wucuo.")
 
-;; You can also use "M-x ispell-word" or hotkey "M-$". It pop up a multiple choice
-;; @see http://frequal.com/Perspectives/EmacsTip03-FlyspellAutoCorrectWord.html
-(global-set-key (kbd "C-c s") 'flyspell-auto-correct-word)
+(defun text-mode-hook-setup ()
+  "Set up text mode."
+  ;; Turn off RUN-TOGETHER option when spell check text.
+  (unless my-disable-wucuo
+    (setq-local ispell-extra-args (my-detect-ispell-args))
+    (my-ensure 'wucuo)
+    (wucuo-start)))
+(add-hook 'text-mode-hook 'text-mode-hook-setup)
 
 (defun my-clean-aspell-dict ()
   "Clean ~/.aspell.pws (dictionary used by aspell)."
@@ -186,6 +142,8 @@ When fixing a typo, avoid pass camel case option to cli program."
          (lines (my-read-lines dict))
          ;; sort words
          (aspell-words (sort (cdr lines) 'string<)))
+    (save-buffer)
+    (sit-for 1)
     (with-temp-file dict
       (insert (format "%s %d\n%s"
                         "personal_ws-1.1 en"
@@ -211,19 +169,14 @@ When fixing a typo, avoid pass camel case option to cli program."
                                         org-level-1
                                         org-document-info))
                   (rlt t)
-                  ff
                   th
                   b e)
              (save-excursion
                (goto-char start)
 
-               ;; get current font face
-               (setq ff (get-text-property start 'face))
-               (if (listp ff) (setq ff (car ff)))
-
                ;; ignore certain errors by set rlt to nil
                (cond
-                ((memq ff ignored-font-faces)
+                ((cl-intersection (my-what-face start) ignored-font-faces)
                  ;; check current font face
                  (setq rlt nil))
                 ((or (string-match "^ *- $" (buffer-substring (line-beginning-position) (+ start 2)))
@@ -245,9 +198,9 @@ When fixing a typo, avoid pass camel case option to cli program."
                  (setq b (re-search-backward begin-regexp nil t))
                  (if b (setq e (re-search-forward end-regexp nil t)))
                  (if (and b e (< start e)) (setq rlt nil)))))
-             ;; (if rlt (message "start=%s end=%s ff=%s" start end ff))
              rlt))))
 ;; }}
+
 
 (with-eval-after-load 'wucuo
   ;; {{ wucuo is used to check camel cased code and plain text.  Code is usually written

@@ -36,8 +36,14 @@
 (defun org-demote-or-promote (&optional is-promote)
   "Demote or promote current org tree."
   (interactive "P")
-  (unless (region-active-p)
-    (org-mark-subtree))
+  (save-excursion
+    (beginning-of-line)
+    (unless (or (region-active-p)
+                (let ((line (thing-at-point 'line t)))
+                  (and (string-match-p "^\\*+ $" line) ;; is node only one spaced
+                       (= (point) (- (point-max) (length line))) ;; is line at EOF
+                       )))
+      (org-mark-subtree)))
   (if is-promote (org-do-promote) (org-do-demote)))
 
 ;; {{ @see http://orgmode.org/worg/org-contrib/org-mime.html
@@ -59,11 +65,14 @@
     (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
 
     ;; don't spell check double words
-    (setq my-flyspell-check-doublon nil)
+    (setq-local wucuo-flyspell-check-doublon nil)
 
     ;; create updated table of contents of org file
     ;; @see https://github.com/snosov1/toc-org
     (toc-org-enable)
+
+    ;; default `org-indent-line' inserts extra spaces at the beginning of lines
+    (setq-local indent-line-function 'indent-relative)
 
     ;; display wrapped lines instead of truncated lines
     (setq truncate-lines nil)
@@ -93,9 +102,8 @@ ARG is ignored."
 
   (my-ensure 'org-clock)
 
-  ;; org-re-reveal requires org 8.3 while Emacs 25 uses org 8.2
-  (when *emacs26*
-    (my-ensure 'org-re-reveal))
+  ;; org-re-reveal requires org 8.3
+  (my-ensure 'org-re-reveal)
 
   ;; odt export
   (add-to-list 'org-export-backends 'odt)
@@ -125,46 +133,25 @@ It's value could be customized liked \"/usr/bin/firefox\".
       (apply orig-func args)))
   (advice-add 'org-open-at-point :around #'my-org-open-at-point-hack)
 
+  (defun my-org-docview-open-hack (orig-func &rest args)
+    (let* ((link (car args)) path page)
+      (string-match "\\(.*?\\)\\(?:::\\([0-9]+\\)\\)?$" link)
+      (setq path (match-string 1 link))
+      (setq page (and (match-beginning 2)
+                 (string-to-number (match-string 2 link))))
+      (org-open-file path 1)
+      (when page
+        (cond
+         ((eq major-mode 'pdf-view-mode)
+          (pdf-view-goto-page page))
+         (t
+          (doc-view-goto-page page))))))
+  (advice-add 'org-docview-open :around #'my-org-docview-open-hack)
   (defun my-org-publish-hack (orig-func &rest args)
     "Stop running `major-mode' hook when `org-publish'."
-    (let* ((load-user-customized-major-mode-hook nil))
+    (let* ((my-load-user-customized-major-mode-hook nil))
       (apply orig-func args)))
   (advice-add 'org-publish :around #'my-org-publish-hack)
-
-  ;; {{ NO spell check for embedded snippets
-  (defun my-org-mode-code-snippet-p ()
-    "Code snippet embedded in org file?"
-    (let* (rlt
-           (begin-regexp "^[ \t]*#\\+begin_\\(src\\|html\\|latex\\|example\\)")
-           (end-regexp "^[ \t]*#\\+end_\\(src\\|html\\|latex\\|example\\)")
-           (case-fold-search t)
-           b e)
-      (save-excursion
-        (if (setq b (re-search-backward begin-regexp nil t))
-            (setq e (re-search-forward end-regexp nil t))))
-      (if (and b e (< (point) e)) (setq rlt t))
-      rlt))
-
-  (defun my-org-mode-flyspell-verify-hack (orig-func &rest args)
-    "flyspell only uses `ispell-word'."
-    (let* ((run-spellcheck (apply orig-func args)))
-      (when run-spellcheck
-        (cond
-         ;; skip checking in below fonts
-         ((font-belongs-to (point) '(org-verbatim org-code))
-          (setq run-spellcheck nil))
-
-         ;; skip checking property lines
-         ((string-match "^[ \t]+:[A-Z]+:[ \t]+" (my-line-str))
-          (setq run-spellcheck nil))
-
-         ;; skipping checking in code snippet
-         ;; slow test should be placed at last
-         ((my-org-mode-code-snippet-p)
-          (setq run-spellcheck nil))))
-      run-spellcheck))
-  (advice-add 'org-mode-flyspell-verify :around #'my-org-mode-flyspell-verify-hack)
-  ;; }}
 
   ;; {{ convert to odt
   (defun my-setup-odt-org-convert-process ()
@@ -180,7 +167,7 @@ It's value could be customized liked \"/usr/bin/firefox\".
   (defun my-org-refile-hack (orig-func &rest args)
     "When `org-refile' scans org files,
 skip user's own code in `org-mode-hook'."
-    (let* ((force-buffer-file-temp-p t))
+    (let* ((my-force-buffer-file-temp-p t))
       (apply orig-func args)))
   (advice-add 'org-refile :around #'my-org-refile-hack)
 

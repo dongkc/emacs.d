@@ -1,4 +1,5 @@
 request/
+.cache
 .depend
 pyim/
 anaconda-mode/
@@ -68,3 +69,5 @@ transient/
 cnfonts/
 smex-items
 elpy/
+package-quickstart.el
+.lsp-session*
