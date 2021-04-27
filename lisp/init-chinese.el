@@ -104,7 +104,7 @@
      ;;     (add-to-list 'pyim-dicts (list :name "pyim-greatdict" :file (my-pyim-personal-dict "pyim-greatdict.pyim"))))
 
      ;; don't use tooltip
-     (setq pyim-use-tooltip 'posframe)))
+     (setq pyim-use-tooltip 'posframe))
 ;; }}
 
 ;; {{ cal-china-x setup
