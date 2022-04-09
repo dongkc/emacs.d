@@ -145,7 +145,7 @@
   ;; the key bindings in previous configuration
   (require-init 'init-ediff)
 
-  (require-init 'init-csharp) ; init-csharp for csharp development
+  ;; (require-init 'init-csharp) ; init-csharp for csharp development
 
   ;; @see https://github.com/hlissner/doom-emacs/wiki/FAQ
   ;; Adding directories under "site-lisp/" to `load-path' slows
@@ -164,7 +164,7 @@
 
     ;; my personal setup, other major-mode specific setup need it.
     ;; It's dependent on "~/.emacs.d/site-lisp/*.el"
-    (load (expand-file-name "~/.emacs.d/custom.el") t nil))
+    (load (expand-file-name "~/.emacs.d/custom.el") t nil)))
 
 ;; @see https://www.reddit.com/r/emacs/comments/55ork0/is_emacs_251_noticeably_slower_than_245_on_windows/
 ;; Emacs 25 does gc too frequently

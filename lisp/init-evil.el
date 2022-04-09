@@ -673,26 +673,6 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "cr" 'my-windows-setup
   "uu" 'my-transient-winner-undo
   "fs" 'ffip-save-ivy-last
-<<<<<<< HEAD
-  "fr" 'ffip-ivy-resume
-  "fc" 'cp-ffip-ivy-last
-  "ss" (lambda ()
-         (interactive)
-         ;; better performance, got Cygwin grep installed on Windows always
-         (counsel-grep-or-swiper (if (region-active-p) (my-selected-str))))
-  "hd" 'describe-function
-  "hf" 'find-function
-  "hk" 'describe-key
-  "hv" 'describe-variable
-  "gt" 'counsel-gtags-dwim ; jump from reference to definition or vice versa
-  "gr" 'counsel-gtags-find-symbol
-  ;; C#语言跳转
-  ;; "gd" 'omnisharp-go-to-definition
-  ;; "gr
-
-  "gu" 'counsel-gtags-update-tags
-  "fb" 'flyspell-buffer
-=======
   "fr" 'ivy-resume
   "ss" 'my-swiper
   "sf" 'shellcop-search-in-shell-buffer-of-other-window
@@ -701,7 +681,6 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
           (my-ensure 'wucuo)
           (let* ((wucuo-flyspell-start-mode "normal"))
             (wucuo-spell-check-internal)))
->>>>>>> 34c57156c4c614eaabaddc6f59d0ac1ef2c0d21f
   "fe" 'flyspell-goto-next-error
   "fa" 'flyspell-auto-correct-word
   "lb" 'langtool-check-buffer
