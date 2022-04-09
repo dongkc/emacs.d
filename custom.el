@@ -76,9 +76,9 @@
   :init (setq lsp-ui-flycheck-enable t)
   :commands lsp-ui-mode)
 
-(use-package company-lsp
-  :ensure t
-  :commands company-lsp)
+;; (use-package company-lsp
+;;   :ensure t
+;;   :commands company-lsp)
 
 (use-package dap-mode
   :ensure t :after lsp-mode
@@ -123,9 +123,9 @@
 
  (with-eval-after-load 'eshell (set-language-environment "chinese-GB"))
 
-(require 'quelpa-use-package)
-(use-package alpha-org
-  :quelpa (alpha-org :fetcher github :repo "alphapapa/alpha-org"))
+;; (require 'quelpa-use-package)
+;; (use-package alpha-org
+;;   :quelpa (alpha-org :fetcher github :repo "alphapapa/alpha-org"))
 
 
 (server-start)

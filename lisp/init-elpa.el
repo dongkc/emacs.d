@@ -162,6 +162,7 @@
     ob-go
     ob-async
     plantuml-mode
+    use-package
     ledger-mode
     ledger-import
     ob-restclient
@@ -415,6 +416,18 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
 (require-package 'ws-butler)
 (require-package 'sage-shell-mode)
 (require-package 'graphql-mode)
+
+(require-package 'ledger-mode)
+(require-package 'ledger-import)
+(require-package 'ob-async)
+(require-package 'use-package)
+(require-package 'ob-go)
+(require-package 'plantuml-mode)
+(require-package 'ob-restclient)
+(require-package 'helm)
+(require-package 'projectile)
+(require-package 'helm-projectile)
+(require-package 'edit-server)
 
 (defvar my-color-themes
   '(afternoon-theme

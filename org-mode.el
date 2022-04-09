@@ -824,7 +824,6 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
          (ruby . t)
          (gnuplot . t)
          (clojure . t)
-         (ledger . t)
          (lisp . t)
          (restclient . t)
          (sql . t)
