@@ -4,7 +4,7 @@
 
 ;; Author: Chen Bin <chenbin.sh@gmail.com>
 ;; URL: https://github.com/redguardtoo/company-ctags
-;; Version: 0.0.4
+;; Version: 0.0.7
 ;; Keywords: convenience
 ;; Package-Requires: ((emacs "25.1") (company "0.9.0"))
 
@@ -57,6 +57,8 @@
 ;;   The input could match any part of the candidate instead of the beginning of
 ;;   the candidate.
 ;;
+;; - Set `company-ctags-ignore-case' to ignore case when fetching candidates
+;;
 ;; - Use rusty-tags to generate tags file for Rust programming language.
 ;;   Add below code into ~/.emacs,
 ;;     (setq company-ctags-tags-file-name "rusty-tags.emacs")
@@ -103,7 +105,7 @@ They will be replaced by their definitions.  If a variable does
 not exist, it is replaced (silently) with an empty string."
   :type '(repeat 'string))
 
-(defcustom company-ctags-quiet t
+(defcustom company-ctags-quiet nil
   "Be quiet and do not notify user tags file status."
   :type 'boolean)
 
@@ -156,7 +158,7 @@ the candidate."
 
 (defvar company-backends) ; avoid compiling warning
 
-(defvar-local company-ctags-buffer-table 'unknown)
+(defvar-local company-ctags-buffer-table-internal nil)
 
 (defvar company-ctags-tags-file-caches nil
   "The cached tags files.")
@@ -185,17 +187,22 @@ the candidate."
 (defun company-ctags-buffer-table ()
   "Find buffer table."
   (or (and company-ctags-use-main-table-list tags-table-list)
-      (if (eq company-ctags-buffer-table 'unknown)
-          (setq company-ctags-buffer-table (company-ctags-find-table))
-        company-ctags-buffer-table)))
+      (or company-ctags-buffer-table-internal
+          (setq company-ctags-buffer-table-internal
+                (company-ctags-find-table)))))
 
-(defun company-ctags-tag-name-character-p (c)
-  "Test if character C is in `company-ctags-tag-name-valid-characters'."
-  (let (rlt (i 0) (len (length company-ctags-tag-name-valid-characters)))
+(defun company-ctags-char-in-string-p (character string)
+  "Test if CHARACTER is in STRING."
+  (let (rlt (i 0) (len (length string)))
     (while (and (not rlt) (< i len))
-      (setq rlt (eq (elt company-ctags-tag-name-valid-characters i) c))
+      (setq rlt (eq (elt string i) character))
       (setq i (1+ i)))
     rlt))
+
+(defun company-ctags-tag-name-character-p (character)
+  "Test if CHARACTER is in `company-ctags-tag-name-valid-characters'."
+  (company-ctags-char-in-string-p character
+                                  company-ctags-tag-name-valid-characters))
 
 (defmacro company-ctags-push-tagname (tagname tagname-dict)
   "Push TAGNAME into TAGNAME-DICT."
@@ -249,7 +256,8 @@ the candidate."
   "Extract tag names from TEXT.
 DICT is the existing lookup dictionary contains tag names.
 If it's nil, return a dictionary, or else return the existing dictionary."
-  (let* ((start 0))
+  (let* ((start 0)
+         (case-fold-search company-ctags-ignore-case))
     (unless dict (setq dict (company-ctags-init-tagname-dict)))
 
     ;; Code inside the loop should be optimized.
@@ -281,41 +289,53 @@ If it's nil, return a dictionary, or else return the existing dictionary."
 (defun company-ctags-all-completions (string collection)
   "Search  match to STRING in COLLECTION to see if it begins with STRING.
 If `company-ctags-fuzzy-match-p' is t, check if the match contains STRING."
-  (cond
-   (company-ctags-fuzzy-match-p
-    (let* (rlt)
-      ;; code should be efficient in side the this loop
-      (dolist (c collection)
-        (if (string-match string c) (push c rlt)))
-      rlt))
-   (t
-    (all-completions string collection))))
+  (let ((case-fold-search company-ctags-ignore-case))
+    (cond
+     (company-ctags-fuzzy-match-p
+      (let* (rlt)
+        ;; code should be efficient in side the this loop
+        (dolist (c collection)
+          (if (string-match string c) (push c rlt)))
+        rlt))
+     (t
+      (all-completions string collection)))))
+
+(defun company-ctags-fetch-by-first-char (c prefix tagname-dict)
+  "Fetch candidates by first character C of PREFIX from TAGNAME-DICT."
+  (let* ((rlt (company-ctags-all-completions prefix (gethash c tagname-dict))))
+    (when company-ctags-ignore-case
+      (let (c2 (offset (- ?a ?A)))
+        (cond
+         ((company-ctags-char-in-string-p c "abcdefghijklmnopqrstuvwxyz")
+          (setq c2 (- c offset)))
+
+         ((company-ctags-char-in-string-p c "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          (setq c2 (+ c offset))))
+
+        (when c2
+          (setq rlt (nconc rlt (company-ctags-all-completions prefix (gethash c2 tagname-dict)))))))
+    rlt))
 
 (defun company-ctags-all-candidates (prefix tagname-dict)
   "Search for partial match to PREFIX in TAGNAME-DICT."
   (cond
    (company-ctags-fuzzy-match-p
     (let* ((keys (hash-table-keys tagname-dict))
-           arr
            rlt)
       ;; search all hash tables
       ;; don't care the first character of prefix
       (dolist (c keys)
-        (setq arr (gethash c tagname-dict))
-        (setq rlt (nconc rlt (company-ctags-all-completions prefix arr))))
+        (setq rlt (nconc rlt (company-ctags-fetch-by-first-char c prefix tagname-dict))))
       rlt))
    (t
-    (let* ((c (elt prefix 0))
-           (arr (gethash c tagname-dict)))
-      (company-ctags-all-completions prefix arr)))))
+    (company-ctags-fetch-by-first-char (elt prefix 0) prefix tagname-dict))))
 
-(defun company-ctags-load-tags-file (file static-p &optional force no-diff-prog quiet)
+(defun company-ctags-load-tags-file (file static-p &optional force no-diff-prog)
   "Load tags from FILE.
 If STATIC-P is t, the corresponding tags file is read only once.
 If FORCE is t, tags file is read without `company-ctags-tags-file-caches'.
 If NO-DIFF-PROG is t, do NOT use diff on tags file.
-This function return t if any tag file is reloaded.
-If QUIET is t, don not output any message."
+This function return t if any tag file is reloaded."
   (let* (raw-content
          (file-info (and company-ctags-tags-file-caches
                          (gethash file company-ctags-tags-file-caches)))
@@ -344,32 +364,32 @@ If QUIET is t, don not output any message."
 
       ;; Read file content
       (setq reloaded t)
-      (unless quiet (message "Loading %s ..." file))
       (cond
        (use-diff
         ;; actually don't change raw-content attached to file-info
         (setq raw-content (plist-get file-info :raw-content))
 
         ;; use diff to find the new tags
-        (let* ((tmp-file (make-temp-file "company-ctags-diff"))
-               (cmd (format "%s -ab %s %s" diff-command tmp-file file)))
-          ;; create old tags file
+        (let (diff-output)
           (with-temp-buffer
             (insert (plist-get file-info :raw-content))
-            (write-region (point-min) (point-max) tmp-file nil :silent))
+            ;; when process finished, replace temp buffer with program output
+            (call-process-region (point-min) (point-max) diff-command t t nil "-ab" file "-")
+            (setq diff-output (buffer-string)))
+
           ;; compare old and new tags file, extract tag names from diff output which
           ;; should be merged with old tag names
           (setq tagname-dict
-                (company-ctags-parse-tags (shell-command-to-string cmd)
-                                          (plist-get file-info :tagname-dict)))
-          ;; clean up
-          (delete-file tmp-file)))
+                (company-ctags-parse-tags diff-output
+                                          (plist-get file-info :tagname-dict)))))
        (t
+        (unless company-ctags-quiet (message "Please be patient when loading %s" file))
         (setq raw-content (with-temp-buffer
                             (insert-file-contents file)
                             (buffer-string)))
         ;; collect all tag names
-        (setq tagname-dict (company-ctags-parse-tags raw-content))))
+        (setq tagname-dict (company-ctags-parse-tags raw-content))
+        (unless company-ctags-quiet (message "%s is loaded." file))))
 
       ;; initialize hash table if needed
       (unless company-ctags-tags-file-caches
@@ -385,15 +405,15 @@ If QUIET is t, don not output any message."
                      :static-p static-p
                      :timestamp (float-time (current-time))
                      :filesize (nth 7 (file-attributes file)))
-               company-ctags-tags-file-caches)
-      (unless quiet (message "%s is loaded." file)))
+               company-ctags-tags-file-caches))
     reloaded))
 
 (defun company-ctags--test-cached-candidates (prefix)
   "Test PREFIX in `company-ctags-cached-candidates'."
   (let* ((cands company-ctags-cached-candidates)
          (key (plist-get cands :key))
-         (keylen (length key)))
+         (keylen (length key))
+         (case-fold-search company-ctags-ignore-case))
     ;;  prefix is "hello" and cache's prefix "ell"
     (and (>= (length prefix) keylen)
          (if company-ctags-fuzzy-match-p (string-match key prefix)
@@ -418,8 +438,7 @@ If QUIET is t, don not output any message."
           (when (company-ctags-load-tags-file f
                                               nil ; primary tags file, not static
                                               nil
-                                              nil ; only for debug
-                                              company-ctags-quiet)
+                                              nil)
             ;; invalidate cached candidates if any tags file is reloaded
             (setq company-ctags-cached-candidates nil))))
 
@@ -430,8 +449,7 @@ If QUIET is t, don not output any message."
             (company-ctags-load-tags-file f
                                           t ; static tags file, read only once
                                           nil
-                                          nil ; only for debug
-                                          company-ctags-quiet))))
+                                          nil))))
 
       (cond
        ;; re-use cached candidates

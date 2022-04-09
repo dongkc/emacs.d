@@ -70,6 +70,7 @@
   (evil-local-set-key 'normal "q" (lambda () (interactive) (quit-window t)))
   (evil-local-set-key 'normal (kbd "RET") 'ffip-diff-find-file)
   ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
+  (evil-local-set-key 'normal "u" 'diff-undo)
   (evil-local-set-key 'normal "a" 'ffip-diff-apply-hunk)
   (evil-local-set-key 'normal "o" 'ffip-diff-find-file))
 (add-hook 'ffip-diff-mode-hook 'ffip-diff-mode-hook-setup)
@@ -260,42 +261,44 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; {{ specify major mode uses Evil (vim) NORMAL state or EMACS original state.
 ;; You may delete this setup to use Evil NORMAL state always.
-(dolist (p '((minibuffer-inactive-mode . emacs)
-             (calendar-mode . emacs)
-             (special-mode . emacs)
-             (grep-mode . emacs)
-             (Info-mode . emacs)
-             (term-mode . emacs)
-             (sdcv-mode . emacs)
-             (anaconda-nav-mode . emacs)
-             (log-edit-mode . emacs)
-             (vc-log-edit-mode . emacs)
-             (magit-log-edit-mode . emacs)
-             (erc-mode . emacs)
-             (neotree-mode . emacs)
-             (w3m-mode . emacs)
-             (gud-mode . emacs)
-             (help-mode . emacs)
-             (eshell-mode . emacs)
-             (shell-mode . emacs)
-             (xref--xref-buffer-mode . emacs)
-             ;;(message-mode . emacs)
-             (epa-key-list-mode . emacs)
-             (fundamental-mode . emacs)
-             (weibo-timeline-mode . emacs)
-             (weibo-post-mode . emacs)
-             (woman-mode . emacs)
-             (sr-mode . emacs)
-             (profiler-report-mode . emacs)
-             (dired-mode . emacs)
-             (compilation-mode . emacs)
-             (speedbar-mode . emacs)
-             (ivy-occur-mode . emacs)
-             (ffip-file-mode . emacs)
-             (ivy-occur-grep-mode . normal)
-             (messages-buffer-mode . normal)
-             (js2-error-buffer-mode . emacs)))
-  (evil-set-initial-state (car p) (cdr p)))
+(defvar my-initial-evil-state-setup
+  '((minibuffer-inactive-mode . emacs)
+    (calendar-mode . emacs)
+    (special-mode . emacs)
+    (grep-mode . emacs)
+    (Info-mode . emacs)
+    (term-mode . emacs)
+    (sdcv-mode . emacs)
+    (anaconda-nav-mode . emacs)
+    (log-edit-mode . emacs)
+    (vc-log-edit-mode . emacs)
+    (magit-log-edit-mode . emacs)
+    (erc-mode . emacs)
+    (diff-mode . emacs)
+    (ffip-diff-mode . normal)
+    (neotree-mode . emacs)
+    (w3m-mode . emacs)
+    (gud-mode . emacs)
+    (help-mode . emacs)
+    (eshell-mode . emacs)
+    (shell-mode . emacs)
+    (xref--xref-buffer-mode . emacs)
+    (epa-key-list-mode . emacs)
+    (fundamental-mode . emacs)
+    (weibo-timeline-mode . emacs)
+    (weibo-post-mode . emacs)
+    (woman-mode . emacs)
+    (sr-mode . emacs)
+    (profiler-report-mode . emacs)
+    (dired-mode . emacs)
+    (compilation-mode . emacs)
+    (speedbar-mode . emacs)
+    (ivy-occur-mode . emacs)
+    (ffip-file-mode . emacs)
+    (ivy-occur-grep-mode . normal)
+    (messages-buffer-mode . normal)
+    (js2-error-buffer-mode . emacs))
+  "Default evil state per major mode.")
 ;; }}
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
@@ -327,7 +330,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; BEFORE searching string from `point-min'.
 ;; xref part is annoying because I already use `counsel-etags' to search tag.
 (evil-define-motion my-evil-goto-definition ()
-  "Go to definition or first occurrence of symbol under point in current buffer."
+  "Go to local definition or first occurrence of symbol under point in current buffer."
   :jump t
   :type exclusive
   (let* ((string (evil-find-symbol t))
@@ -339,6 +342,10 @@ If the character before and after CH is space or tab, CH is NOT slash"
     (if (null string)
         (user-error "No symbol under cursor")
       (setq isearch-forward t)
+
+      (my-ensure 'counsel-etags)
+      (counsel-etags-push-marker-stack)
+
       ;; if imenu is available, try it
       (cond
        ((and (derived-mode-p 'js2-mode)
@@ -359,6 +366,9 @@ If the character before and after CH is space or tab, CH is NOT slash"
        ;; otherwise just go to first occurrence in buffer
        (t
         (my-search-defun-from-pos search (point-min)))))))
+
+;; Use below line to restore old vim "gd"
+;; (define-key evil-normal-state-map "gd" 'my-evil-goto-definition)
 
 ;; I learn this trick from ReneFroger, need latest expand-region
 ;; @see https://github.com/redguardtoo/evil-matchit/issues/38
@@ -495,14 +505,33 @@ If INCLUSIVE is t, the text object is inclusive."
   :prefix ","
   :states '(normal visual))
 
+(defvar my-web-mode-element-rename-previous-tag nil
+  "Used by my-rename-thing-at-point.")
+
+(defun my-detect-new-html-tag (flag)
+  (cond
+   ((eq flag 'pre)
+    (message "str=%s" (buffer-string (line-beginning-position) (line-end-position))))
+   ((eq flag 'post)
+    (message "str=%s" (buffer-string (line-beginning-position) (line-end-position))))))
+(push '(rename-html-tag my-detect-new-html-tag) evil-repeat-types)
+(evil-set-command-property #'web-mode-element-rename :repeat 'rename-html-tag)
+
 (defun my-rename-thing-at-point (&optional n)
   "Rename thing at point.
-If N > 0, only occurrences in current N lines are renamed."
+If N > 0 and working on HTML, repeating previous tag name operation.
+If N > 0 and working on javascript, only occurrences in current N lines are renamed."
   (interactive "P")
   (cond
+   ((eq major-mode 'web-mode)
+     (unless (and n my-web-mode-element-rename-previous-tag)
+       (setq my-web-mode-element-rename-previous-tag (read-string "New tag name? ")))
+     (web-mode-element-rename my-web-mode-element-rename-previous-tag))
+
    ((derived-mode-p 'js2-mode)
     ;; use `js2-mode' parser, much smarter and works in any scope
     (js2hl-rename-thing-at-point n))
+
    (t
     ;; simple string search/replace in function scope
     (evilmr-replace-in-defun))))
@@ -521,8 +550,14 @@ If N > 0, only occurrences in current N lines are renamed."
    (t
     (message "Can only beautify code written in python/javascript"))))
 
+(general-imap ","
+              (general-key-dispatch 'self-insert-command
+                :timeout 0.5
+                "/" 'my-toggle-input-method))
+
 (my-comma-leader-def
   "," 'evilnc-comment-operator
+  "/" 'my-toggle-input-method
   "bf" 'beginning-of-defun
   "bu" 'backward-up-list
   "bb" (lambda () (interactive) (switch-to-buffer nil)) ; to previous buffer
@@ -581,8 +616,7 @@ If N > 0, only occurrences in current N lines are renamed."
   "gf" 'counsel-git ; find file
   "gg" 'my-counsel-git-grep ; quickest grep should be easy to press
   "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
-  "gt" 'my-evil-goto-definition ; "gt" is occupied by evil
-  "gl" 'my-git-log-trace-definition ; find history of a function or range
+  "vv" 'my-evil-goto-definition ; frequently used
   "sh" 'my-select-from-search-text-history
   "rjs" 'run-js
   "jsr" 'js-comint-send-region
@@ -607,11 +641,13 @@ If N > 0, only occurrences in current N lines are renamed."
   "cxr" 'org-clock-report ; `C-c C-x C-r'
   "qq" 'my-multi-purpose-grep
   "dd" 'counsel-etags-grep-current-directory
-  "rr" 'helm-recentf
   "rh" 'counsel-yank-bash-history ; bash history command => yank-ring
   "rd" 'counsel-recent-directory
-  "da" 'diff-region-tag-selected-as-a
-  "db" 'diff-region-compare-with-b
+  "dc" 'my-grep-pinyin-in-current-directory
+  ;; "rr" 'my-counsel-recentf
+  "rr" 'helm-recentf
+  "da" 'diff-lisp-mark-selected-text-as-a
+  "db" 'diff-lisp-diff-a-and-b
   "di" 'evilmi-delete-items
   "si" 'evilmi-select-items
   "jb" 'my-beautfiy-code
@@ -634,10 +670,10 @@ If N > 0, only occurrences in current N lines are renamed."
   "sd" 'split-window-horizontally
   "oo" 'delete-other-windows
   ;; }}
-  "xr" 'my-rotate-windows
-  "xt" 'toggle-two-split-window
+  "cr" 'my-windows-setup
   "uu" 'my-transient-winner-undo
   "fs" 'ffip-save-ivy-last
+<<<<<<< HEAD
   "fr" 'ffip-ivy-resume
   "fc" 'cp-ffip-ivy-last
   "ss" (lambda ()
@@ -656,6 +692,16 @@ If N > 0, only occurrences in current N lines are renamed."
 
   "gu" 'counsel-gtags-update-tags
   "fb" 'flyspell-buffer
+=======
+  "fr" 'ivy-resume
+  "ss" 'my-swiper
+  "sf" 'shellcop-search-in-shell-buffer-of-other-window
+  "fb" '(lambda ()
+          (interactive)
+          (my-ensure 'wucuo)
+          (let* ((wucuo-flyspell-start-mode "normal"))
+            (wucuo-spell-check-internal)))
+>>>>>>> 34c57156c4c614eaabaddc6f59d0ac1ef2c0d21f
   "fe" 'flyspell-goto-next-error
   "fa" 'flyspell-auto-correct-word
   "lb" 'langtool-check-buffer
@@ -705,7 +751,7 @@ If N > 0, only occurrences in current N lines are renamed."
   "va" 'git-add-current-file
   "vk" 'git-checkout-current-file
   "vg" 'vc-annotate ; 'C-x v g' in original
-  "vv" 'vc-msg-show
+  "vm" 'vc-msg-show
   "v=" 'git-gutter:popup-hunk
   "hh" 'cliphist-paste-item
   "yu" 'cliphist-select-item
@@ -748,9 +794,9 @@ If N > 0, only occurrences in current N lines are renamed."
   "jj" 'scroll-other-window
   "kk" 'scroll-other-window-up
   "hh" 'random-healthy-color-theme
-  "yy" 'hydra-launcher/body
+  "yy" 'my-hydra-zoom/body
   "ii" 'my-toggle-indentation
-  "g" 'hydra-git/body
+  "g" 'my-hydra-git/body
   "ur" 'gud-remove
   "ub" 'gud-break
   "uu" 'gud-run
@@ -760,21 +806,6 @@ If N > 0, only occurrences in current N lines are renamed."
   "ui" 'gud-stepi
   "uc" 'gud-cont
   "uf" 'gud-finish)
-
-;; per-major-mode setup
-
-(general-create-definer my-javascript-leader-def
-  :prefix "SPC"
-  :non-normal-prefix "M-SPC"
-  :states '(normal motion insert emacs)
-  :keymaps 'js2-mode-map)
-
-(my-javascript-leader-def
-  "de" 'js2-display-error-list
-  "nn" 'js2-next-error
-  "te" 'js2-mode-toggle-element
-  "tf" 'js2-mode-toggle-hide-functions)
-;; }}
 
 ;; {{ Use `;` as leader key, for searching something
 (general-create-definer my-semicolon-leader-def
@@ -925,10 +956,14 @@ If N > 0, only occurrences in current N lines are renamed."
 ;; press ",xx" to expand region
 ;; then press "char" to contract, "x" to expand
 (with-eval-after-load 'evil
+  ;; initial evil state per major mode
+  (dolist (p my-initial-evil-state-setup)
+    (evil-set-initial-state (car p) (cdr p)))
+
   ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
   ;; Restore "M-." to original binding command
   (define-key evil-normal-state-map (kbd "M-.") 'xref-find-definitions)
-  (setq expand-region-contract-fast-key "char")
+  (setq expand-region-contract-fast-key "z")
   ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
   ;; evil 1.0.8 search word instead of symbol
   (setq evil-symbol-word-search t)
@@ -954,11 +989,77 @@ If N > 0, only occurrences in current N lines are renamed."
   ;; Here is the workaround
   (setq evil-default-cursor t))
 
-(with-eval-after-load 'web-mode
-  (mapc #'evil-declare-change-repeat
-        '(web-mode-element-rename))
-  ;; (mapc #'evil-declare-repeat
-  ;;       '(web-mode-element-rename))
-  )
+
+;; {{ per-major-mode setup
+(general-create-definer my-javascript-leader-def
+  :prefix "SPC"
+  :non-normal-prefix "M-SPC"
+  :states '(normal motion insert emacs)
+  :keymaps 'js2-mode-map)
+
+(my-javascript-leader-def
+  "de" 'js2-display-error-list
+  "nn" 'js2-next-error
+  "te" 'js2-mode-toggle-element
+  "tf" 'js2-mode-toggle-hide-functions)
+
+(general-create-definer my-org-leader-def
+  :prefix ";"
+  :non-normal-prefix "M-;"
+  :states '(normal motion visual)
+  :keymaps 'org-mode-map)
+
+(my-org-leader-def
+  "f" 'my-navigate-in-pdf
+  "g" 'my-open-pdf-goto-page)
+;; }}
+
+
+;; {{ my personal evil optimization which need be manually enabled.
+(defun my-evil-ex-command-completion-at-point ()
+  "Completion function for ex command history."
+  (let* ((start (or (get-text-property 0 'ex-index evil-ex-cmd)
+                    (point)))
+         (end (point)))
+    (list start end evil-ex-history :exclusive 'no)))
+
+(defun my-search-evil-ex-history ()
+  "Search `evil-ex-history' to complete ex command."
+  (interactive)
+  (let (after-change-functions
+        (completion-styles '(substring))
+        (completion-at-point-functions '(my-evil-ex-command-completion-at-point)))
+    (evil-ex-update)
+    (completion-at-point)
+    (remove-text-properties (minibuffer-prompt-end) (point-max) '(face nil evil))))
+
+(defun my-optimize-evil ()
+  "I prefer mixed Emacs&Vi style.  Run this function in \"~/.custom.el\"."
+  (with-eval-after-load 'evil
+    ;; TAB key still triggers `evil-ex-completion'.
+    (define-key evil-ex-completion-map (kbd "C-d") 'delete-char)
+
+    ;; use `my-search-evil-ex-history' to replace `evil-ex-command-window'
+    (define-key evil-ex-completion-map (kbd "C-f") 'forward-char)
+    (define-key evil-ex-completion-map (kbd "C-s") 'evil-ex-command-window)
+    ;; I use Emacs in terminal which may not support keybinding "C-r" or "M-n"
+    (define-key evil-ex-completion-map (kbd "C-r") 'my-search-evil-ex-history)
+    (define-key evil-ex-completion-map (kbd "M-n") 'my-search-evil-ex-history)))
+;; }}
+
+;; @see https://github.com/redguardtoo/emacs.d/issues/955
+;; `evil-paste-after' => `current-kill' => `interprogram-paste-function'=> `gui-selection-value'
+;; `gui-selection-value' returns clipboard text from CLIPBOARD or "PRIMARY" clipboard which are
+;; also controlled by `select-enable-clipboard' and `select-enable-primary'.
+;; Please note `evil-visual-update-x-selection' automatically updates PRIMARY clipboard with
+;; visual selection.
+;; I set `my-evil-enable-visual-update-x-selection' to nil to avoid all those extra "features".
+(defvar my-evil-enable-visual-update-x-selection nil
+  "Automatically copy the selected text into evil register.
+I'm not sure this is good idea.")
+(defun my-evil-visual-update-x-selection-hack (orig-func &rest args)
+  (when my-evil-enable-visual-update-x-selection
+    (apply orig-func args)))
+(advice-add 'evil-visual-update-x-selection :around #'my-evil-visual-update-x-selection-hack)
 
 (provide 'init-evil)

@@ -3,25 +3,47 @@
 (defun my-initialize-package ()
   ;; optimization, no need to activate all the packages so early
   (cond
+   ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
+   ;; ** Installed packages are now activated *before* loading the init file.
+   ;; As a result of this change, it is no longer necessary to call
+   ;; 'package-initialize' in your init file.
+
+   ;; Previously, a call to 'package-initialize' was automatically inserted
+   ;; into the init file when Emacs was started.  This call can now safely
+   ;; be removed.  Alternatively, if you want to ensure that your init file
+   ;; is still compatible with earlier versions of Emacs, change it to:
+
+   ;; (when (< emacs-major-version 27)
+   ;;   (package-initialize))
+
+   ;; However, if your init file changes the values of 'package-load-list'
+   ;; or 'package-user-dir', or sets 'package-enable-at-startup' to nil then
+   ;; it won't work right without some adjustment:
+   ;; - You can move that code to the early init file (see above), so those
+   ;;   settings apply before Emacs tries to activate the packages.
+   ;; - You can use the new 'package-quickstart' so activation of packages
+   ;;   does not need to pay attention to 'package-load-list' or
+   ;;   'package-user-dir' any more.
    (*emacs27*
-    ;; you need run `M-x package-quickstart-refresh' at least once
-    ;; to generate file "package-quickstart.el'.
-    ;; It contains the `autoload' statements for all packages.
-    ;; Please note once this file is created, you can't automatically
-    ;; install missing package any more
-    ;; You also need need re-generate this file if any package is upgraded.
-    (setq package-quickstart t)
+    ;; "package-quickstart.el" converts path in `load-path' into
+    ;; os dependent path, make it impossible to share same emacs.d between
+    ;; Windows and Cygwin.
+    (unless (or *win64* *cygwin*)
+      ;; you need run `M-x package-quickstart-refresh' at least once
+      ;; to generate file "package-quickstart.el'.
+      ;; It contains the `autoload' statements for all packages.
+      (setq package-quickstart t))
 
     ;; esup need call `package-initialize'
     ;; @see https://github.com/jschaf/esup/issues/84
     (when (or (featurep 'esup-child)
               (fboundp 'profile-dotemacs)
-              (not (file-exists-p (concat my-emacs-d "elpa")))
+              (daemonp)
               (my-vc-merge-p)
               noninteractive)
       (package-initialize)))
    (t
-    ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
+    ;; emacs 26
     (package-initialize))))
 
 (my-initialize-package)
@@ -120,9 +142,6 @@
     regex-tool
     legalese
     htmlize
-    pyim-basedict
-    pyim-wbdict
-    pyim
     scratch
     session
     inflections
@@ -143,6 +162,7 @@
     ob-restclient
     calibredb
     company-c-headers
+    graphql-mode
     company-statistics)
   "Packages to install from melpa-unstable.")
 
@@ -164,15 +184,14 @@
         ;; ;; {{ Option 1: 163 mirror repository:
         ;; ;; ("gnu" . "https://mirrors.163.com/elpa/gnu/")
         ;; ("melpa" . "https://mirrors.163.com/elpa/melpa/")
-        ;; ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/")
+        ;; ("melpa-stable" . "https://mirrors.163.com/elpa/stable-melpa/")
         ;; ;; }}
 
-        ;; {{ Option 2: tsinghua mirror repository
-        ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
-        ("gnu"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
-        ("melpa" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
-        ("melpa-stable" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/")
-        ;; ("org" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
+        ;; ;; {{ Option 2: tsinghua mirror repository
+        ;; ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
+        ;; ;; ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+        ;; ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
+        ;; ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/stable-melpa/")
         ;; }}
 
         ;; ("melpa" . "https://melpa.org/packages/")
@@ -187,7 +206,7 @@
 You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
   (setq package-archives
         '(("melpa" . "https://mirrors.163.com/elpa/melpa/")
-          ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/"))))
+          ("melpa-stable" . "https://mirrors.163.com/elpa/stable-melpa/"))))
 
 ;; Un-comment below line if you follow "Install stable version in easiest way"
 ;; (setq package-archives '(("myelpa" . "~/myelpa/")))
@@ -235,16 +254,13 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 
 ;; On-demand installation of packages
 (defun require-package (package &optional min-version no-refresh)
-  "Ask elpa to install given PACKAGE."
+  "Ask elpa to install given PACKAGE with MIN-VERSION.
+If NO-REFRESH is nil, `package-refresh-contents' is called."
   (my-ensure 'package)
-  (cond
-   ((package-installed-p package min-version)
-    t)
-   ((or (assoc package package-archive-contents) no-refresh)
-    (package-install package))
-   (t
-    (package-refresh-contents)
-    (require-package package min-version t))))
+  (unless (package-installed-p package min-version)
+    (unless (or (assoc package package-archive-contents) no-refresh)
+      (package-refresh-contents))
+    (package-install package)))
 
 ;;------------------------------------------------------------------------------
 ;; Fire up package.el and ensure the following packages are installed.
@@ -259,8 +275,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'csv-mode)
 (require-package 'expand-region) ; I prefer stable version
 (require-package 'fringe-helper)
-(require-package 'gitignore-mode)
-(require-package 'gitconfig-mode)
 (require-package 'wgrep)
 (require-package 'request)
 (require-package 'lua-mode)
@@ -331,7 +345,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'hydra)
 (require-package 'ivy-hydra) ; @see https://oremacs.com/2015/07/23/ivy-multiaction/
 (require-package 'web-mode)
-(require-package 'emms)
 (require-package 'iedit)
 (require-package 'websocket) ; for debug debugging of browsers
 (require-package 'undo-tree)
@@ -386,128 +399,137 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; org => ppt
 (require-package 'org-re-reveal)
 
-(defun my-install-popular-themes (popular-themes)
-  "Install POPULAR-THEMES from melpa."
-  (dolist (theme popular-themes)
-    (require-package theme)))
-
+(require-package 'git-modes)
 (require-package 'magit)
 (require-package 'ace-pinyin)
 (require-package 'which-key)
 (require-package 'highlight-symbol)
-;; org-roam requires new version of org-mode bundled with Emacs 27
-(when *emacs27* (require-package 'org-roam))
+(require-package 'wc-mode)
+(require-package 'helpful)
+(require-package 'qrencode)
+(require-package 'ws-butler)
+(require-package 'sage-shell-mode)
+(require-package 'graphql-mode)
+
+(defvar my-color-themes
+  '(afternoon-theme
+    alect-themes
+    ample-theme
+    ample-zen-theme
+    anti-zenburn-theme
+    apropospriate-theme
+    atom-dark-theme
+    atom-one-dark-theme
+    badwolf-theme
+    base16-theme
+    birds-of-paradise-plus-theme
+    bubbleberry-theme
+    busybee-theme
+    cherry-blossom-theme
+    clues-theme
+    color-theme-sanityinc-solarized
+    color-theme-sanityinc-tomorrow
+    cyberpunk-theme
+    dakrone-theme
+    darkburn-theme
+    darkmine-theme
+    darkokai-theme
+    darktooth-theme
+    django-theme
+    doom-themes
+    dracula-theme
+    espresso-theme
+    exotica-theme
+    eziam-theme
+    fantom-theme
+    farmhouse-theme
+    flatland-theme
+    flatui-theme
+    gandalf-theme
+    gotham-theme
+    grandshell-theme
+    gruber-darker-theme
+    gruvbox-theme
+    hc-zenburn-theme
+    hemisu-theme
+    heroku-theme
+    inkpot-theme
+    ir-black-theme
+    jazz-theme
+    jbeans-theme
+    kaolin-themes
+    leuven-theme
+    light-soap-theme
+    lush-theme
+    madhat2r-theme
+    majapahit-theme
+    material-theme
+    minimal-theme
+    moe-theme
+    molokai-theme
+    monochrome-theme
+    monokai-theme
+    mustang-theme
+    naquadah-theme
+    noctilux-theme
+    nord-theme
+    obsidian-theme
+    occidental-theme
+    oldlace-theme
+    omtose-phellack-theme
+    organic-green-theme
+    phoenix-dark-mono-theme
+    phoenix-dark-pink-theme
+    planet-theme
+    professional-theme
+    purple-haze-theme
+    railscasts-theme
+    rebecca-theme
+    reverse-theme
+    seti-theme
+    smyx-theme
+    soft-charcoal-theme
+    soft-morning-theme
+    soft-stone-theme
+    solarized-theme
+    soothe-theme
+    spacegray-theme
+    spacemacs-theme
+    srcery-theme
+    subatomic-theme
+    subatomic256-theme
+    sublime-themes
+    sunny-day-theme
+    tango-2-theme
+    tango-plus-theme
+    tangotango-theme
+    tao-theme
+    toxi-theme
+    twilight-anti-bright-theme
+    twilight-bright-theme
+    twilight-theme
+    ujelly-theme
+    underwater-theme
+    vscode-dark-plus-theme
+    white-sand-theme
+    zen-and-art-theme
+    zenburn-theme
+    zerodark-theme)
+  "Color themes for this setup.")
+
 
 ;; speed up CI
 (unless my-disable-idle-timer
   ;; most popular 100 themes
-  (my-install-popular-themes
-   '(
-     afternoon-theme
-     alect-themes
-     ample-theme
-     ample-zen-theme
-     anti-zenburn-theme
-     apropospriate-theme
-     atom-dark-theme
-     atom-one-dark-theme
-     badwolf-theme
-     base16-theme
-     birds-of-paradise-plus-theme
-     bubbleberry-theme
-     busybee-theme
-     cherry-blossom-theme
-     clues-theme
-     color-theme-sanityinc-solarized
-     color-theme-sanityinc-tomorrow
-     cyberpunk-theme
-     dakrone-theme
-     darkburn-theme
-     darkmine-theme
-     darkokai-theme
-     darktooth-theme
-     django-theme
-     doom-themes
-     dracula-theme
-     espresso-theme
-     exotica-theme
-     eziam-theme
-     fantom-theme
-     farmhouse-theme
-     flatland-theme
-     flatui-theme
-     gandalf-theme
-     gotham-theme
-     grandshell-theme
-     gruber-darker-theme
-     gruvbox-theme
-     hc-zenburn-theme
-     hemisu-theme
-     heroku-theme
-     inkpot-theme
-     ir-black-theme
-     jazz-theme
-     jbeans-theme
-     kaolin-themes
-     leuven-theme
-     light-soap-theme
-     lush-theme
-     madhat2r-theme
-     majapahit-theme
-     material-theme
-     minimal-theme
-     moe-theme
-     molokai-theme
-     monochrome-theme
-     monokai-theme
-     mustang-theme
-     naquadah-theme
-     noctilux-theme
-     nord-theme
-     obsidian-theme
-     occidental-theme
-     oldlace-theme
-     omtose-phellack-theme
-     organic-green-theme
-     phoenix-dark-mono-theme
-     phoenix-dark-pink-theme
-     planet-theme
-     professional-theme
-     purple-haze-theme
-     railscasts-theme
-     rebecca-theme
-     reverse-theme
-     seti-theme
-     smyx-theme
-     soft-charcoal-theme
-     soft-morning-theme
-     soft-stone-theme
-     solarized-theme
-     soothe-theme
-     spacegray-theme
-     spacemacs-theme
-     srcery-theme
-     subatomic-theme
-     subatomic256-theme
-     sublime-themes
-     sunny-day-theme
-     tango-2-theme
-     tango-plus-theme
-     tangotango-theme
-     tao-theme
-     toxi-theme
-     twilight-anti-bright-theme
-     twilight-bright-theme
-     twilight-theme
-     ujelly-theme
-     underwater-theme
-     vscode-dark-plus-theme
-     white-sand-theme
-     zen-and-art-theme
-     zenburn-theme
-     zerodark-theme
-     )))
+  (dolist (theme my-color-themes)
+    (require-package theme))
+  (when *emacs27*
+    (require-package 'modus-themes)))
 
+;; }}
+
+;; {{ trivial packages which has extra dependency
+(require-package 'emms)
 ;; }}
 
 ;; kill buffer without my confirmation

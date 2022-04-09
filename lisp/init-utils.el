@@ -20,6 +20,12 @@
         (require feature)
       (error nil))))
 
+(defun my-hostname ()
+  "Return stripped output of cli program hostname."
+  (let* ((output (shell-command-to-string "hostname")))
+    ;; Windows DOS might output some extra noise
+    (string-trim (replace-regexp-in-string "hostname" "" output))))
+
 (defun my-git-root-dir ()
   "Git root directory."
   (locate-dominating-file default-directory ".git"))
@@ -90,6 +96,10 @@
   "Add entries to `interpreter-mode-alist' to use `MODE' for all given file `PATTERNS'."
   (dolist (pattern patterns)
     (push (cons pattern mode) interpreter-mode-alist )))
+
+(defmacro my-push-if-uniq (item items)
+  "Push ITEM into ITEMS if it's unique."
+  `(unless (member ,item ,items) (push ,item ,items)))
 
 (defun my-what-face (&optional position)
   "Show all faces at POSITION."
@@ -304,7 +314,7 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
 
 (defun my-gclip ()
   "Get clipboard content."
-  (let* ((powershell-program (executable-find "powershell.exe")))
+  (let (powershell-program)
     (cond
      ;; Windows
      ((and *win64* (fboundp 'w32-get-clipboard-data))
@@ -312,11 +322,14 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
       (w32-get-clipboard-data))
 
      ;; Windows 10
-     (powershell-program
+     ((and *win64* (setq powershell-program (executable-find "powershell.exe")))
       (string-trim-right
        (with-output-to-string
          (with-current-buffer standard-output
            (call-process powershell-program nil t nil "-command" "Get-Clipboard")))))
+
+     (*cygwin*
+      (string-trim-right (shell-command-to-string "cat /dev/clipboard")))
 
      ;; xclip can handle
      (t
@@ -325,21 +338,35 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
 (defvar my-ssh-client-user nil
   "User name of ssh client.")
 
+(defun my-send-string-to-cli-stdin (string program)
+  "Send STRING to cli PROGRAM's stdin."
+  (with-temp-buffer
+    (insert string)
+    (call-process-region (point-min) (point-max) program)))
+
+(defun my-write-string-to-file (string file)
+  "Write STRING to FILE."
+  (with-temp-buffer
+    (insert string)
+    (write-region (point-min) (point-max) file)))
+
 (defun my-pclip (str-val)
   "Put STR-VAL into clipboard."
-  (let* ((win64-clip-program (executable-find "clip.exe"))
+  (let* (win64-clip-program
          ssh-client)
     (cond
-     ;; Windows 10 or Windows 7
-     ((and win64-clip-program)
-      (with-temp-buffer
-        (insert str-val)
-        (call-process-region (point-min) (point-max) win64-clip-program)))
+     ;; Windows 10
+     ((and *win64* (setq win64-clip-program (executable-find "clip.exe")))
+      (my-send-string-to-cli-stdin str-val win64-clip-program))
 
      ;; Windows
      ((and *win64* (fboundp 'w32-set-clipboard-data))
       ;; Don't know why, but on Windows 7 this API does not work.
       (w32-set-clipboard-data str-val))
+
+     ;; Cygwin
+     (*cygwin*
+      (my-write-string-to-file str-val "/dev/clipboard"))
 
      ;; If Emacs is inside an ssh session, place the clipboard content
      ;; into "~/.tmp-clipboard" and send it back into ssh client
@@ -562,12 +589,21 @@ Copied from 3rd party package evil-textobj."
 (defun my-setup-extra-keymap (extra-fn-list hint fn &rest args)
   "Map EXTRA-FN-LIST to new keymap and show HINT after calling FN with ARGS."
   (let ((echo-keystrokes nil))
-    (apply fn args)
+    (when fn (apply fn args))
     (message hint)
     (set-transient-map
-     (let ((map (make-sparse-keymap)))
+     (let ((map (make-sparse-keymap))
+           cmd)
        (dolist (item extra-fn-list)
-         (define-key map (kbd (nth 0 item)) (nth 1 item)))
+         (setq cmd (nth 1 item))
+         (setq cmd (cond
+                    ((commandp cmd)
+                     cmd)
+                    (t
+                     `(lambda ()
+                        (interactive)
+                        (if (functionp ,cmd) (funcall ,cmd) ,cmd)))))
+         (define-key map (kbd (nth 0 item)) cmd))
        map)
      t)))
 
@@ -593,6 +629,85 @@ Copied from 3rd party package evil-textobj."
     (dolist (ff font-face-list)
       (if (my-font-face-similar-p f ff) (setq rlt t)))
     rlt))
+
+(defun my-pdf-view-goto-page (page)
+  "Go to pdf file's specific PAGE."
+  (cond
+   ((eq major-mode 'pdf-view-mode)
+    (pdf-view-goto-page page))
+   (t
+    (doc-view-goto-page page))))
+
+(defun my-focus-on-pdf-window-then-back (fn)
+  "Focus on pdf window and call function FN then move focus back."
+  (let* ((pdf-window (cl-find-if (lambda (w)
+                                   (let ((file (buffer-file-name (window-buffer w))))
+                                     (and file (string= (file-name-extension file) "pdf"))))
+                                 (my-visible-window-list)))
+         (pdf-file (buffer-file-name (window-buffer pdf-window)))
+         (original-window (get-buffer-window)))
+    (when (and pdf-window pdf-file)
+      ;; select pdf-window
+      (select-window pdf-window)
+      ;; do something
+      (funcall fn pdf-file)
+      ;; back home
+      (select-window original-window))))
+
+(defun my-list-windows-in-frame (&optional frame)
+  "List windows in FRAME."
+  (window-list frame 0 (frame-first-window frame)))
+
+(defun my-visible-window-list ()
+  "Visible window list."
+  (cl-mapcan #'my-list-windows-in-frame (visible-frame-list)))
+
+(defun my-lisp-find-file-or-directory (root regexp prefer-directory-p)
+  "Find files or directories in ROOT whose names match REGEXP.
+If PREFER-DIRECTORY-P is t, return directory; or else, returns file.
+This function is written in pure Lisp and slow."
+  (my-ensure 'find-lisp)
+  (find-lisp-find-files-internal
+   root
+   (lambda (file dir)
+     (let* ((directory-p (file-directory-p (expand-file-name file dir)))
+            (rlt (and (if prefer-directory-p directory-p (not directory-p))
+                      (not (or (string= file ".") (string= file "..")))
+                      (string-match regexp file))))
+       rlt))
+   'find-lisp-default-directory-predicate))
+
+(defvar my-media-file-extensions
+  '("3gp"
+    "avi"
+    "crdownload"
+    "flac"
+    "flv"
+    "m4v"
+    "mid"
+    "mkv"
+    "mov"
+    "mp3"
+    "mp4"
+    "mpg"
+    "ogm"
+    "part"
+    "rmvb"
+    "wav"
+    "wmv"
+    "webm")
+  "File extensions of media files.")
+
+(defun my-file-extensions-to-regexp (extensions)
+  "Convert file EXTENSIONS to one regex."
+  (concat "\\." (regexp-opt extensions t) "$"))
+
+(defun my-binary-file-p (file)
+  "Test if it's binary FILE."
+  (let* ((other-exts '("pyim" "recentf"))
+         (exts (append my-media-file-extensions other-exts))
+         (regexp (my-file-extensions-to-regexp exts)))
+    (string-match-p regexp file)))
 
 (provide 'init-utils)
 ;;; init-utils.el ends here
