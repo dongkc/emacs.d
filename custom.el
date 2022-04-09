@@ -39,7 +39,7 @@
 (require 'auth-source-pass)
 (auth-source-pass-enable)
 
-(setq exec-path (append exec-path '("/Users/dongkc/flutter/bin/")))
+(setq exec-path (append exec-path '("/Users/dongkc/bin/")))
 (toggle-frame-fullscreen)
 
 (setq elfeed-feeds
