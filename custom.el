@@ -66,7 +66,7 @@
 
 (use-package lsp-mode
   :ensure t
-  :init (setq lsp-keymap-prefix "C-c C-l"
+  :init (setq lsp-keymap-prefix "s-l"
               lsp-prefer-flymake nil)
   :commands (lsp make-lsp-client lsp-register-client)
   :hook (lsp-mode . lsp-enable-which-key-integration))
@@ -76,9 +76,17 @@
   :init (setq lsp-ui-flycheck-enable t)
   :commands lsp-ui-mode)
 
-;; (use-package company-lsp
-;;   :ensure t
-;;   :commands company-lsp)
+(use-package lsp-dart
+  :ensure t
+  :hook (dart-mode . lsp))
+
+;; Optional packages
+(use-package projectile :ensure t) ;; project management
+(use-package lsp-ui :ensure t) ;; UI for LSP
+(use-package company :ensure t) ;; Auto-complete
+
+;; Optional Flutter packages
+(use-package hover :ensure t) ;; run app from desktop without emulator
 
 (use-package dap-mode
   :ensure t :after lsp-mode
@@ -87,10 +95,6 @@
   (dap-ui-mode t))
 
 (setq browse-url-generic-program "chrome")
-(setq web-mode-markup-indent-offset 2)
-(setq web-mode-css-indent-offset 2)
-(setq web-mode-code-indent-offset 2)
-(setq nxml-child-indent 4 nxml-attribute-indent 4)
 
 (defun dos2unix ()
   "Not exactly but it's easier to remember"
@@ -106,12 +110,6 @@
 (global-set-key (kbd "C-x b") 'helm-mini)
 (global-set-key (kbd "C-x C-f") 'helm-find-files)
 
-(global-set-key (kbd "M-x") 'helm-M-x)
-(global-set-key (kbd "C-x C-m") 'helm-M-x)
-(global-set-key (kbd "M-y") 'helm-show-kill-ring)
-(global-set-key (kbd "C-x b") 'helm-mini)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
-
 (global-set-key (kbd "C-c h o") 'helm-occur)
 (global-set-key (kbd "C-h SPC") 'helm-all-mark-rings)
 (global-set-key (kbd "C-c h x") 'helm-register)
@@ -121,12 +119,7 @@
 (helm-projectile-on)
 (setq projectile-indexing-method 'alien)
 
- (with-eval-after-load 'eshell (set-language-environment "chinese-GB"))
-
-;; (require 'quelpa-use-package)
-;; (use-package alpha-org
-;;   :quelpa (alpha-org :fetcher github :repo "alphapapa/alpha-org"))
-
+;; (with-eval-after-load 'eshell (set-language-environment "chinese-GB"))
 
 (server-start)
 (require 'org-protocol)
@@ -139,10 +132,3 @@
   (concat 
   (mapcar #'(lambda (c) (if (equal c ?[) ?\( (if (equal c ?]) ?\) c))) string-to-transform))
   )
-
-(setq org-capture-templates `(
-	("p" "Protocol" entry (file+headline ,(concat org-directory "/notes.org") "Inbox")
-        "* %^{Title}\n[[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")	
-	("L" "Protocol Link" entry (file+headline ,(concat org-directory "/notes.org") "Inbox")
-        "* %? [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n" :kill-buffer t)
-))
