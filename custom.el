@@ -16,7 +16,7 @@
 (setq org-mobile-directory "~/git/dav/test")
 (setq org-mobile-inbox-for-pull (concat org-directory "/index.org"))
 (setq org-mobile-inbox-for-pull "~/git/org/index.org")
-(setq org-agenda-files (quote ("~/git/org")))
+(setq org-agenda-files (quote ("~/org")))
 
 (beacon-mode 1)
 (require 'org-bullets)
