@@ -37,18 +37,19 @@
           rev
           (make-string level ?^)))
 
-(defun nonempty-lines (str)
+(defun my-nonempty-lines (str)
   "Split STR into lines."
   (split-string str "[\r\n]+" t))
 
 (defun my-lines-from-command-output (command)
   "Return lines of COMMAND output."
   (let* ((output (string-trim (shell-command-to-string command)))
-         (cands (nonempty-lines output)))
+         (cands (my-nonempty-lines output)))
     (delq nil (delete-dups cands))))
 
 (defun run-cmd-and-replace-region (cmd)
-  "Run CMD in shell on selected region or whole buffer and replace it with cli output."
+  "Run CMD in shell on selected region or current buffer.
+Then replace the region or buffer with cli output."
   (let* ((orig-point (point))
          (b (if (region-active-p) (region-beginning) (point-min)))
          (e (if (region-active-p) (region-end) (point-max))))
@@ -88,12 +89,12 @@
 
 ;; Handier way to add modes to auto-mode-alist
 (defun my-add-auto-mode (mode &rest patterns)
-  "Add entries to `auto-mode-alist' to use `MODE' for all given file `PATTERNS'."
+  "Add entries to `auto-mode-alist' to use MODE for given file PATTERNS."
   (dolist (pattern patterns)
     (push (cons pattern mode) auto-mode-alist)))
 
 (defun my-add-interpreter-mode (mode &rest patterns)
-  "Add entries to `interpreter-mode-alist' to use `MODE' for all given file `PATTERNS'."
+  "Add entries to `interpreter-mode-alist' to use MODE for given file PATTERNS."
   (dolist (pattern patterns)
     (push (cons pattern mode) interpreter-mode-alist )))
 
@@ -108,7 +109,7 @@
 
 ;; String utilities missing from core emacs
 (defun string-all-matches (regex str &optional group)
-  "Find all matches for `REGEX' within `STR', returning the full match string or group `GROUP'."
+  "Find matches for REGEX in STR, returning the full match or GROUP."
   (let ((result nil)
         (pos 0)
         (group (or group 0)))
@@ -120,7 +121,7 @@
 (defun path-in-directory-p (file directory)
   "FILE is in DIRECTORY."
   (let* ((pattern (concat "^" (file-name-as-directory directory))))
-    (if (string-match-p pattern file) file)))
+    (if (string-match pattern file) file)))
 
 (defun my-prepare-candidate-fit-into-screen (s)
   (let* ((w (frame-width))
@@ -140,7 +141,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (let* ((candidates (cl-remove-if
                        (lambda (s)
                          (or (< (length s) 5)
-                             (string-match-p "\\`[\n[:blank:]]+\\'" s)))
+                             (string-match "\\`[\n[:blank:]]+\\'" s)))
                        (delete-dups kill-ring)))
           (ivy-height (/ (frame-height) 2)))
      (ivy-read "Browse `kill-ring':"
@@ -235,8 +236,8 @@ If HINT is empty, use symbol at point."
      (* 5000 64)))
 
 (defvar my-force-buffer-file-temp-p nil)
-(defun is-buffer-file-temp ()
-  "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
+(defun my-buffer-file-temp-p ()
+  "If no file or a temp file or HTML file converted from org file."
   (interactive)
   (let* ((f (buffer-file-name)) (rlt t))
     (cond
@@ -276,6 +277,12 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
          (common-opts "-fs -quiet"))
     (cond
      (*is-a-mac*
+      (cond
+       ((executable-find "mplayer")
+        (setq program "mplayer"))
+       (t
+        (setq program "open")))
+
       (setq program "mplayer"))
 
      (*linux*
@@ -286,12 +293,28 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
           (setq program "/cygdrive/c/mplayer/mplayer.exe")
         (setq program "/cygdrive/d/mplayer/mplayer.exe")))
 
-     ;; windows
-     (t
-      (if (file-executable-p "c:\\\\mplayer\\\\mplayer.exe")
-          (setq program "c:\\\\mplayer\\\\mplayer.exe")
-        (setq program "d:\\\\mplayer\\\\mplayer.exe"))))
+     (*win64*
+      (cond
+       ((file-executable-p "c:/mplayer/mplayer.exe")
+        (setq program "c:/mplayer/mplayer.exe"))
+       ((file-executable-p "d:/mplayer/mplayer.exe")
+        (setq program "d:/mplayer/mplayer.exe"))
+       ((file-executable-p "c:/mpv/mpv.exe")
+        (setq program "c:/mpv/mpv.exe"))
+       ((file-executable-p "d:/mpv/mpv.exe")
+        (setq program "d:/mpv/mpv.exe"))
+       (t
+        (error "Can't find media player.")))
 
+      (if (file-executable-p "c:\\\\mplayer\\\\mplayer.exe")
+
+        (setq program "d:\\\\mplayer\\\\mplayer.exe")))
+
+     (t
+      (error "Platform is not supported. Can't find any media player.")))
+
+    (unless (string-match "mplayer" program)
+      (setq common-opts ""))
     (format "%s %s %s" program common-opts my-mplayer-extra-opts)))
 
 (defun my-guess-image-viewer-path (image &optional stream-p)
@@ -390,9 +413,9 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
 ;; }}
 
 (defun my-should-use-minimum-resource ()
-  "Some files should use minimum resource (no syntax highlight, no line number display)."
+  "Use minimum resource (no highlight or line number)."
   (and buffer-file-name
-       (string-match-p "\.\\(mock\\|min\\|bundle\\)\.js" buffer-file-name)))
+       (string-match "\.\\(mock\\|min\\|bundle\\)\.js" buffer-file-name)))
 
 (defun my-async-shell-command (command)
   "Execute string COMMAND asynchronously."
@@ -410,6 +433,11 @@ For example, you can '(setq my-mplayer-extra-opts \"-fs -ao alsa -vo vdpau\")'."
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; {{ code is copied from https://liu233w.github.io/2016/09/29/org-python-windows.org/
 
+(defun my-org-babel-execute:python-hack (orig-func &rest args)
+  ;; @see https://github.com/Liu233w/.spacemacs.d/issues/6
+  (let ((coding-system-for-write 'utf-8))
+    (apply orig-func args)))
+
 (defun my-setup-language-and-encode (language-name coding-system)
   "Set up LANGUAGE-NAME and CODING-SYSTEM at Windows.
 For example,
@@ -422,16 +450,7 @@ For example,
     (set-terminal-coding-system coding-system)
 
     (modify-coding-system-alist 'process "*" coding-system)
-    (defun my-windows-shell-mode-coding ()
-      (set-buffer-file-coding-system coding-system)
-      (set-buffer-process-coding-system coding-system coding-system))
-    (add-hook 'shell-mode-hook #'my-windows-shell-mode-coding)
-    (add-hook 'inferior-python-mode-hook #'my-windows-shell-mode-coding)
 
-    (defun my-org-babel-execute:python-hack (orig-func &rest args)
-      ;; @see https://github.com/Liu233w/.spacemacs.d/issues/6
-      (let* ((coding-system-for-write 'utf-8))
-        (apply orig-func args)))
     (advice-add 'org-babel-execute:python :around #'my-org-babel-execute:python-hack))
 
    (t
@@ -480,9 +499,7 @@ If STEP is 1,  search in forward direction, or else in backward direction."
 Copied from 3rd party package evil-textobj."
   (let* ((point-face (my-what-face))
          (pos (point))
-         (backward-point pos) ; last char when stop, including white space
          (backward-none-space-point pos) ; last none white space char
-         (forward-point pos) ; last char when stop, including white space
          (forward-none-space-point pos) ; last none white space char
          (start pos)
          (end pos))
@@ -493,11 +510,9 @@ Copied from 3rd party package evil-textobj."
       (let ((continue t))
         (while (and continue (>= (- (point) 1) (point-min)))
           (backward-char)
-          (if (= 32 (char-after))
-              (setq backward-point (point))
+          (unless (= 32 (char-after))
             (if (equal point-face (my-what-face))
-                (progn (setq backward-point (point))
-                       (setq backward-none-space-point (point)))
+                (setq backward-none-space-point (point))
               (setq continue nil))))))
 
     ;; check chars forward,
@@ -507,11 +522,9 @@ Copied from 3rd party package evil-textobj."
         (while (and continue (< (+ (point) 1) (point-max)))
           (forward-char)
           (let ((forward-point-face (my-what-face)))
-            (if (= 32 (char-after))
-                (setq forward-point (point))
+            (unless (= 32 (char-after))
               (if (equal point-face forward-point-face)
-                  (progn (setq forward-point (point))
-                         (setq forward-none-space-point (point)))
+                  (setq forward-none-space-point (point))
                 (setq continue nil)))))))
 
     (cond
@@ -530,28 +543,49 @@ Copied from 3rd party package evil-textobj."
     (goto-char position)
     (following-char)))
 
-(defun my-pinyinlib-build-regexp-string (str)
-  "Build pinyin regexp from STR."
-  (my-ensure 'pinyinlib)
-  (let* (rlt (i 0) ch)
-    (while (< i (length str))
-      (setq ch (elt str i))
-      (setq rlt (concat rlt
-                        (cond
-                         ((and (<= ?a ch) (<= ch ?z))
-                          (pinyinlib-build-regexp-char ch))
-                         (t
-                          (char-to-string ch)))))
-      (setq i (1+ i)))
-    rlt))
+(defun my-extended-regexp (str)
+  "Build regex compatible with pinyin from STR."
+  (let* ((len (length str)))
+    (cond
+     ;; do nothing
+     ((<= (length str) 1))
 
-(defvar my-disable-idle-timer nil
+     ;; If the first character of input in ivy is ":" or ";",
+     ;; remaining input is converted into Chinese pinyin regex.
+     ((string-match "[:\|;]" (substring str 0 1))
+      (my-ensure 'pinyinlib)
+      (setq str (pinyinlib-build-regexp-string (substring str 1 len))))
+
+     ;; If the first character of input in ivy is "/",
+     ;; remaining input is converted to pattern to search camel case word
+     ;; For example, input "/ic" match "isController" or "isCollapsed"
+     ((string= (substring str 0 1) "/")
+      (let* ((rlt "")
+             (i 0)
+             (subs (substring str 1 len))
+             c)
+        (when (> len 2)
+          (setq subs (upcase subs))
+          (while (< i (length subs))
+            (setq c (elt subs i))
+            (setq rlt (concat rlt (cond
+                                   ((and (< c ?a) (> c ?z) (< c ?A) (> c ?Z))
+                                    (format "%c" c))
+                                   (t
+                                    (concat (if (= i 0) (format "[%c%c]" (+ c 32) c)
+                                              (format "%c" c))
+                                            "[a-z]+")))))
+            (setq i (1+ i))))
+        (setq str rlt))))
+    str))
+
+(defvar my-disable-idle-timer (daemonp)
   "Function passed to `my-run-with-idle-timer' is run immediately.")
 
 (defun my-run-with-idle-timer (seconds func)
   "After SECONDS, run function FUNC once."
   (cond
-   (my-disable-idle-timer
+   ((or my-disable-idle-timer my-lightweight-mode-p)
     (funcall func))
    (t
     (run-with-idle-timer seconds nil func))))
@@ -707,7 +741,24 @@ This function is written in pure Lisp and slow."
   (let* ((other-exts '("pyim" "recentf"))
          (exts (append my-media-file-extensions other-exts))
          (regexp (my-file-extensions-to-regexp exts)))
-    (string-match-p regexp file)))
+    (string-match regexp file)))
+
+(defun my-strip-path (path strip-count)
+  "Strip PATH with STRIP-COUNT."
+  (let* ((i (1- (length path)))
+         str)
+    (while (and (> strip-count 0)
+                (> i 0))
+      (when (= (aref path i) ?/)
+        (setq strip-count (1- strip-count)))
+      (setq i (1- i)))
+    (setq str (if (= 0 strip-count) (substring path (1+ i)) path))
+    (replace-regexp-in-string "^/" "" str)))
+
+(defun my-goto-line (n)
+  "Goto line N."
+  (goto-char (point-min))
+  (forward-line (1- n)))
 
 (provide 'init-utils)
 ;;; init-utils.el ends here

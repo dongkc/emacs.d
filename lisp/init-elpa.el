@@ -1,50 +1,42 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (defun my-initialize-package ()
-  ;; optimization, no need to activate all the packages so early
-  (cond
-   ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
-   ;; ** Installed packages are now activated *before* loading the init file.
-   ;; As a result of this change, it is no longer necessary to call
-   ;; 'package-initialize' in your init file.
+  "Package loading optimization.  No need to activate all the packages so early."
+  ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
+  ;; ** Installed packages are now activated *before* loading the init file.
+  ;; As a result of this change, it is no longer necessary to call
+  ;; `package-initialize' in your init file.
 
-   ;; Previously, a call to 'package-initialize' was automatically inserted
-   ;; into the init file when Emacs was started.  This call can now safely
-   ;; be removed.  Alternatively, if you want to ensure that your init file
-   ;; is still compatible with earlier versions of Emacs, change it to:
+  ;; Previously, a call to `package-initialize' was automatically inserted
+  ;; into the init file when Emacs was started.  This call can now safely
+  ;; be removed.  Alternatively, if you want to ensure that your init file
+  ;; is still compatible with earlier versions of Emacs, change it to:
 
-   ;; (when (< emacs-major-version 27)
-   ;;   (package-initialize))
+  ;; However, if your init file changes the values of `package-load-list'
+  ;; or `package-user-dir', or sets `package-enable-at-startup' to nil then
+  ;; it won't work right without some adjustment:
+  ;; - You can move that code to the early init file (see above), so those
+  ;;   settings apply before Emacs tries to activate the packages.
+  ;; - You can use the new `package-quickstart' so activation of packages
+  ;;   does not need to pay attention to `package-load-list' or
+  ;;   `package-user-dir' any more.
+  ;; "package-quickstart.el" converts path in `load-path' into
+  ;; os dependent path, make it impossible to share same emacs.d between
+  ;; Windows and Cygwin.
+  (unless (or *win64* *cygwin*)
+    ;; you need run `M-x package-quickstart-refresh' at least once
+    ;; to generate file "package-quickstart.el'.
+    ;; It contains the `autoload' statements for all packages.
+    (setq package-quickstart t))
 
-   ;; However, if your init file changes the values of 'package-load-list'
-   ;; or 'package-user-dir', or sets 'package-enable-at-startup' to nil then
-   ;; it won't work right without some adjustment:
-   ;; - You can move that code to the early init file (see above), so those
-   ;;   settings apply before Emacs tries to activate the packages.
-   ;; - You can use the new 'package-quickstart' so activation of packages
-   ;;   does not need to pay attention to 'package-load-list' or
-   ;;   'package-user-dir' any more.
-   (*emacs27*
-    ;; "package-quickstart.el" converts path in `load-path' into
-    ;; os dependent path, make it impossible to share same emacs.d between
-    ;; Windows and Cygwin.
-    (unless (or *win64* *cygwin*)
-      ;; you need run `M-x package-quickstart-refresh' at least once
-      ;; to generate file "package-quickstart.el'.
-      ;; It contains the `autoload' statements for all packages.
-      (setq package-quickstart t))
-
-    ;; esup need call `package-initialize'
-    ;; @see https://github.com/jschaf/esup/issues/84
-    (when (or (featurep 'esup-child)
-              (fboundp 'profile-dotemacs)
-              (daemonp)
-              (my-vc-merge-p)
-              noninteractive)
-      (package-initialize)))
-   (t
-    ;; emacs 26
-    (package-initialize))))
+  ;; esup need call `package-initialize'
+  ;; @see https://github.com/jschaf/esup/issues/84
+  (when (or (featurep 'esup-child)
+            (fboundp 'profile-dotemacs)
+            (daemonp)
+            my-lightweight-mode-p
+            noninteractive)
+    (package-initialize)))
 
 (my-initialize-package)
 
@@ -55,7 +47,6 @@
   '(ace-window ; latest stable is released on year 2014
     ace-pinyin
     pos-tip
-    web-mode
     racket-mode
     auto-package-update
     web-mode
@@ -70,6 +61,7 @@
     git-timemachine ; stable version is broken when git rename file
     highlight-symbol
     undo-fu
+    ob-sagemath
     command-log-mode
     evil ; @see https://github.com/emacs-evil/evil/commit/19cc5f8eef8bfffdec8082b604c7129782acb332
     ;; lsp-mode ; stable version has performance issue, but unstable version sends too many warnings
@@ -104,6 +96,7 @@
     leuven-theme
     elpy ; use latest elpy since Python package API changes
     sublime-themes
+    pyim-wbdict
     tangotango-theme
     darkburn-theme
     ujelly-theme
@@ -125,6 +118,7 @@
     soothe-theme
     heroku-theme
     hemisu-theme
+    pulseaudio-control
     badger-theme
     distinguished-theme
     tao-theme
@@ -248,7 +242,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
       (setq add-to-p
             (or (member pkg-name melpa-include-packages)
                 ;; color themes are welcomed
-                (string-match-p "-theme" (format "%s" pkg-name))))))
+                (string-match "-theme" (format "%s" pkg-name))))))
 
     (when my-debug
       (message "package name=%s version=%s package=%s" pkg-name version package))
@@ -265,6 +259,7 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
   (my-ensure 'package)
   (unless (package-installed-p package min-version)
     (unless (or (assoc package package-archive-contents) no-refresh)
+      (message "Missing package: %s" package)
       (package-refresh-contents))
     (package-install package)))
 
@@ -295,9 +290,11 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
 (require-package 'writeroom-mode)
 (require-package 'haml-mode)
 (require-package 'markdown-mode)
-(require-package 'link)
-(require-package 'connection)
-(require-package 'dictionary) ; dictionary requires 'link and 'connection
+(unless *emacs28*
+  (require-package 'link)
+  (require-package 'connection)
+  ;; dictionary requires 'link and 'connection
+  (require-package 'dictionary))
 (require-package 'htmlize) ; prefer stable version
 (require-package 'jade-mode)
 (require-package 'diminish)
@@ -416,6 +413,8 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
 (require-package 'ws-butler)
 (require-package 'sage-shell-mode)
 (require-package 'graphql-mode)
+(require-package 'ob-sagemath)
+(require-package 'pulseaudio-control)
 
 (require-package 'ledger-mode)
 (require-package 'ledger-import)
@@ -483,6 +482,7 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
     majapahit-theme
     material-theme
     minimal-theme
+    modus-themes
     moe-theme
     molokai-theme
     monochrome-theme
@@ -540,9 +540,7 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
 (unless my-disable-idle-timer
   ;; most popular 100 themes
   (dolist (theme my-color-themes)
-    (require-package theme))
-  (when *emacs27*
-    (require-package 'modus-themes)))
+    (require-package theme)))
 
 ;; }}
 

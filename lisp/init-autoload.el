@@ -23,6 +23,7 @@
 (autoload 'shellcop-erase-buffer "shellcop" "" t)
 (autoload 'shellcop-reset-with-new-command "shellcop" "" t)
 (autoload 'shellcop-start "shellcop" "" t)
+(autoload 'shellcop-directories-from-z "shellcop" "" t)
 (autoload 'shellcop-jump-around "shellcop" "" t)
 (autoload 'shellcop-search-in-shell-buffer-of-other-window "shellcop" "" t)
 (autoload 'mybigword-video2mp3 "mybigword" "" t)
@@ -77,6 +78,8 @@
 (autoload 'srt-offset-subtitles "subtitles" "" t)
 (autoload 'srt-mult-subtitles "subtitles" "" t)
 (autoload 'srt-convert-sub-to-srt "subtitles" "" t)
+(autoload 'srt-slow-down "subtitles" "" t)
+(autoload 'srt-speed-up "subtitles" "" t)
 (autoload 'fastdef-insert "fastdef" nil t)
 (autoload 'fastdef-insert-from-history "fastdef" nil t)
 (autoload 'org-mime-htmlize "org-mime" nil t)
@@ -104,7 +107,10 @@
 (autoload 'diff-lisp-mark-selected-text-as-a "diff-lisp" "" t)
 (autoload 'diff-lisp-compare-with-b "diff-lisp" "" t)
 (autoload 'shenshou-download-subtitle "shenshou" "" t)
+(autoload 'shenshou-extract-subtitle-from-zip "shenshou" "" t)
 (autoload 'shenshou-logout-now "shenshou" "" t)
+(autoload 'my-chinese-sort-words "my-chinese" "" t)
+(autoload 'my-chinese-compare "my-chinese" "" t)
 
 (provide 'init-autoload)
 ;;; init-autoload.el ends here

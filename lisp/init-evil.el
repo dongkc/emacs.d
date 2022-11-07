@@ -5,27 +5,6 @@
 ;; enable evil-mode
 (evil-mode 1)
 
-;; {{ replace undo-tree with undo-fu
-;; @see https://github.com/emacs-evil/evil/issues/1074
-;; copied from doom-emacs
-(define-minor-mode undo-fu-mode
-  "Enables `undo-fu' for the current session."
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map [remap undo] #'undo-fu-only-undo)
-            (define-key map [remap redo] #'undo-fu-only-redo)
-            (define-key map (kbd "C-_")     #'undo-fu-only-undo)
-            (define-key map (kbd "M-_")     #'undo-fu-only-redo)
-            (define-key map (kbd "C-M-_")   #'undo-fu-only-redo-all)
-            (define-key map (kbd "C-x r u") #'undo-fu-session-save)
-            (define-key map (kbd "C-x r U") #'undo-fu-session-recover)
-            map)
-  :init-value nil
-  :global t)
-(undo-fu-mode 1)
-(define-key evil-normal-state-map "u" 'undo-fu-only-undo)
-(define-key evil-normal-state-map (kbd "C-r") 'undo-fu-only-redo)
-;; }}
-
 ;; Store more undo history to prevent loss of data
 (setq undo-limit 8000000
       undo-strong-limit 8000000
@@ -66,14 +45,15 @@
 ;; }}
 
 ;; ffip-diff-mode (read only) evil setup
-(defun ffip-diff-mode-hook-setup ()
+(defun my-ffip-diff-mode-hook-setup ()
+  "Set up key bindings in diff."
   (evil-local-set-key 'normal "q" (lambda () (interactive) (quit-window t)))
   (evil-local-set-key 'normal (kbd "RET") 'ffip-diff-find-file)
   ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
   (evil-local-set-key 'normal "u" 'diff-undo)
   (evil-local-set-key 'normal "a" 'ffip-diff-apply-hunk)
   (evil-local-set-key 'normal "o" 'ffip-diff-find-file))
-(add-hook 'ffip-diff-mode-hook 'ffip-diff-mode-hook-setup)
+(add-hook 'ffip-diff-mode-hook 'my-ffip-diff-mode-hook-setup)
 
 ;; {{ define my own text objects, works on evil v1.0.9 using older method
 ;; @see http://stackoverflow.com/questions/18102004/emacs-evil-mode-how-to-create-a-new-text-object-to-select-words-with-any-non-sp
@@ -219,7 +199,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "File name of nearby path"
   (let* ((selected-region (my-evil-path-extract-region)))
     (if selected-region
-        (evil-range (nth 1 selected-region) (nth 2 selected-region) :expanded t))))
+        (evil-range (nth 1 selected-region) (nth 2 selected-region) type :expanded t))))
 
 (evil-define-text-object my-evil-path-outer-text-object (&optional count begin end type)
   "Nearby path."
@@ -229,6 +209,74 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 (define-key evil-inner-text-objects-map "f" 'my-evil-path-inner-text-object)
 (define-key evil-outer-text-objects-map "f" 'my-evil-path-outer-text-object)
+;; }}
+
+;; {{ paren range text object
+(defun my-evil-paren-range (count beg end type inclusive)
+  "Get minimum range of paren text object.
+COUNT, BEG, END, TYPE is used.  If INCLUSIVE is t, the text object is inclusive.
+FN is function to get range."
+  (let* ((parens '("()" "[]" "{}" "<>" "\"\"" "''" "``"))
+         (pos (point))
+         range
+         found-range)
+    (dolist (p parens)
+      (condition-case nil
+          (let* ((c1 (aref p 0))
+                 (c2 (aref p 1)))
+            (setq range (if (eq c1 c2) (evil-select-quote c1 beg end type count inclusive)
+                          (evil-select-paren c1 c2 beg end type count inclusive))))
+        (error nil))
+      (when (and range (<= (nth 0 range) pos) (< pos (nth 1 range)))
+        (cond
+         (found-range
+          (when (< (- (nth 1 range) (nth 0 range))
+                   (- (nth 1 found-range) (nth 0 found-range)))
+            (setf (nth 0 found-range) (nth 0 range))
+            (setf (nth 1 found-range) (nth 1 range))))
+         (t
+          (setq found-range range)))))
+    found-range))
+
+(evil-define-text-object my-evil-a-paren (count &optional beg end type)
+  "Select a paren."
+  :extend-selection t
+  (my-evil-paren-range count beg end type t))
+
+(evil-define-text-object my-evil-inner-paren (count &optional beg end type)
+  "Select 'inner' paren."
+  :extend-selection nil
+  (my-evil-paren-range count beg end type nil))
+
+(define-key evil-inner-text-objects-map "g" #'my-evil-inner-paren)
+(define-key evil-outer-text-objects-map "g" #'my-evil-a-paren)
+;; }}
+
+
+;; {{ keyword search text object
+(defvar my-evil-search-forward-function #'swiper
+  "Search forward function.")
+
+(defun my-evil-search-range (count beg end type inclusive)
+  "Get minimum range of search text object.
+COUNT, BEG, END, TYPE is used.  If INCLUSIVE is t, the text object is inclusive."
+  (ignore count beg end)
+  (let ((start (point))
+         (end (funcall my-evil-search-forward-function)))
+    (evil-range start (- end (if inclusive 0 (length isearch-string))) type :expanded t)))
+
+(evil-define-text-object my-evil-a-search (count &optional beg end type)
+  "Select a paren."
+  :extend-selection t
+  (my-evil-search-range count beg end type t))
+
+(evil-define-text-object my-evil-inner-search (count &optional beg end type)
+  "Select 'inner' paren."
+  :extend-selection nil
+  (my-evil-search-range count beg end type nil))
+
+(define-key evil-inner-text-objects-map "s" #'my-evil-inner-search)
+(define-key evil-outer-text-objects-map "s" #'my-evil-a-search)
 ;; }}
 
 ;; {{ https://github.com/syl20bnr/evil-escape
@@ -320,7 +368,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   (evil-search search t t pos)
   ;; ignore this.f1 = this.fn.bind(this) code
   (when (and (memq major-mode '(js-mode js2-mode rjsx-mode))
-             (string-match-p "^[ \t]*this\.[a-zA-Z0-9]+[ \t]*=[ \t]*this\.[a-zA-Z0-9]*\.bind(this);"
+             (string-match "^[ \t]*this\.[a-zA-Z0-9]+[ \t]*=[ \t]*this\.[a-zA-Z0-9]*\.bind(this);"
                              (my-line-str)))
 
     (forward-line 1)
@@ -330,7 +378,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; BEFORE searching string from `point-min'.
 ;; xref part is annoying because I already use `counsel-etags' to search tag.
 (evil-define-motion my-evil-goto-definition ()
-  "Go to local definition or first occurrence of symbol under point in current buffer."
+  "Go to local definition or first occurrence of symbol in current buffer."
   :jump t
   :type exclusive
   (let* ((string (evil-find-symbol t))
@@ -382,6 +430,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (defvar evil-global-markers-history nil)
 (defun my-evil-set-marker-hack (char &optional pos advance)
   "Place evil marker's position into history."
+  (ignore advance)
   (unless pos (setq pos (point)))
   ;; only remember global markers
   (when (and (>= char ?A) (<= char ?Z) buffer-file-name)
@@ -437,7 +486,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
                         (let* ((file (match-string-no-properties 1 m))
                                (linenum (match-string-no-properties 2 m)))
                           ;; item's format is like '~/proj1/ab.el:39: (defun hello() )'
-                          (counsel-etags-push-marker-stack (point-marker))
+                          (counsel-etags-push-marker-stack)
                           ;; open file, go to certain line
                           (find-file file)
                           (counsel-etags-forward-line linenum))
@@ -482,7 +531,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; {{ I select string inside single quote frequently
 (defun my-text-obj-similar-font (count beg end type inclusive)
   "Get maximum range of single or double quote text object.
-If INCLUSIVE is t, the text object is inclusive."
+COUNT, BEG, END, TYPE is used.  If INCLUSIVE is t, the text object is inclusive."
+  (ignore count beg end type)
   (let* ((range (my-create-range inclusive)))
     (evil-range (car range) (cdr range) inclusive)))
 
@@ -506,21 +556,12 @@ If INCLUSIVE is t, the text object is inclusive."
   :states '(normal visual))
 
 (defvar my-web-mode-element-rename-previous-tag nil
-  "Used by my-rename-thing-at-point.")
-
-(defun my-detect-new-html-tag (flag)
-  (cond
-   ((eq flag 'pre)
-    (message "str=%s" (buffer-string (line-beginning-position) (line-end-position))))
-   ((eq flag 'post)
-    (message "str=%s" (buffer-string (line-beginning-position) (line-end-position))))))
-(push '(rename-html-tag my-detect-new-html-tag) evil-repeat-types)
-(evil-set-command-property #'web-mode-element-rename :repeat 'rename-html-tag)
+  "Used by `my-rename-thing-at-point'.")
 
 (defun my-rename-thing-at-point (&optional n)
   "Rename thing at point.
-If N > 0 and working on HTML, repeating previous tag name operation.
-If N > 0 and working on javascript, only occurrences in current N lines are renamed."
+If N > 0 and in html, repeating previous tag name operation.
+If N > 0 and in js, only occurrences in current N lines are renamed."
   (interactive "P")
   (cond
    ((eq major-mode 'web-mode)
@@ -550,30 +591,23 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
    (t
     (message "Can only beautify code written in python/javascript"))))
 
-(general-imap ","
-              (general-key-dispatch 'self-insert-command
-                :timeout 0.5
-                "/" 'my-toggle-input-method))
-
 (my-comma-leader-def
   "," 'evilnc-comment-operator
   "/" 'my-toggle-input-method
   "bf" 'beginning-of-defun
   "bu" 'backward-up-list
-  "bb" (lambda () (interactive) (switch-to-buffer nil)) ; to previous buffer
   "ef" 'end-of-defun
   "m" 'evil-set-marker
   "em" 'shellcop-erase-buffer
   "eb" 'eval-buffer
-  "sc" 'scratch
   "ee" 'eval-expression
   "aa" 'copy-to-x-clipboard ; used frequently
   "aw" 'ace-swap-window
   "af" 'ace-maximize-window
   "ac" 'aya-create
   "pp" 'paste-from-x-clipboard ; used frequently
-  "bs" '(lambda () (interactive) (goto-char (car (my-create-range t))))
-  "es" '(lambda () (interactive) (goto-char (1- (cdr (my-create-range t)))))
+  "sb" 'my-current-string-beginning
+  "se" 'my-current-string-end
   "vj" 'my-validate-json-or-js-expression
   "kc" 'kill-ring-to-clipboard
   "fn" 'cp-filename-of-current-buffer
@@ -587,7 +621,10 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "jj" 'find-file-in-project-at-point
   "kk" 'find-file-in-project-by-selected
   "kn" 'find-file-with-similar-name ; ffip v5.3.1
-  "fd" 'find-directory-in-project-by-selected
+  "kd" 'find-directory-in-project-by-selected
+  "kf" 'find-file
+  "k/" 'find-file-other-window
+  "hf" 'find-function
   "trm" 'get-term
   "tff" 'toggle-frame-fullscreen
   "tfm" 'toggle-frame-maximized
@@ -611,9 +648,9 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "ts" 'evilmr-tag-selected-region ;; recommended
   "rt" 'counsel-etags-recent-tag
   "ft" 'counsel-etags-find-tag
-  "yy" 'counsel-browse-kill-ring
+  "yy" 'my-counsel-browse-kill-ring
   "cf" 'counsel-grep ; grep current buffer
-  "gf" 'counsel-git ; find file
+  "gf" 'my-counsel-git-find-file ; find file
   "gg" 'my-counsel-git-grep ; quickest grep should be easy to press
   "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
   "vv" 'my-evil-goto-definition ; frequently used
@@ -621,10 +658,9 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "rjs" 'run-js
   "jsr" 'js-comint-send-region
   "jsb" 'my-js-clear-send-buffer
-  "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
-  "ls" 'highlight-symbol
-  "lq" 'highlight-symbol-query-replace
-  "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
+  "bb" 'my-switch-to-previous-buffer
+  "kb" 'kill-buffer-and-window
+  "bk" 'kill-buffer-and-window
   "ii" 'my-imenu-or-list-tag-in-current-file
   ;; @see https://github.com/pidu/git-timemachine
   ;; p: previous; n: next; w:hash; W:complete hash; g:nth version; q:quit
@@ -635,7 +671,6 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   ;; org-do-demote/org-do-premote support selected region
   "c<" 'org-do-promote ; `C-c C-<'
   "c>" 'org-do-demote ; `C-c C->'
-  "cam" 'org-tags-view ; `C-c a m': search items in org-file-apps by tag
   "cxi" 'org-clock-in ; `C-c C-x C-i'
   "cxo" 'org-clock-out ; `C-c C-x C-o'
   "cxr" 'org-clock-report ; `C-c C-x C-r'
@@ -697,10 +732,6 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "ar" 'align-regexp
   "wrn" 'httpd-restart-now
   "wrd" 'httpd-restart-at-default-directory
-  "bk" 'buf-move-up
-  "bj" 'buf-move-down
-  "bh" 'buf-move-left
-  "bl" 'buf-move-right
   "0" 'winum-select-window-0-or-10
   "1" 'winum-select-window-1
   "2" 'winum-select-window-2
@@ -724,8 +755,8 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "xs" 'save-buffer
   "xc" 'my-switch-to-shell
   "xz" 'my-switch-to-shell
-  "vf" 'vc-rename-file-and-buffer
-  "vc" 'vc-copy-file-and-rename-buffer
+  "vf" 'my-vc-rename-file-and-buffer
+  "vc" 'my-vc-copy-file-and-rename-buffer
   "xv" 'vc-next-action ; 'C-x v v' in original
   "va" 'git-add-current-file
   "vk" 'git-checkout-current-file
@@ -760,19 +791,18 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
         (interactive)
         (if (derived-mode-p 'diff-mode) (my-search-prev-diff-hunk)
           (my-search-prev-merge-conflict)))
-  "ch" 'my-dired-redo-from-commands-history
   "dd" 'pwd
   "mm" 'counsel-evil-goto-global-marker
   "mf" 'mark-defun
   "xc" 'save-buffers-kill-terminal ; not used frequently
-  "cc" 'my-dired-redo-last-command
   "ss" 'wg-create-workgroup ; save windows layout
   "sc" 'shell-command
   "ll" 'wg-open-workgroup ; load windows layout
 
   "jj" 'scroll-other-window
   "kk" 'scroll-other-window-up
-  "hh" 'random-healthy-color-theme
+  "hh" 'my-random-favorite-color-theme
+  "hr" 'my-random-healthy-color-theme
   "yy" 'my-hydra-zoom/body
   "ii" 'my-toggle-indentation
   "g" 'my-hydra-git/body
@@ -804,12 +834,11 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
   "db" 'sdcv-search-input ; details
   "dt" 'sdcv-search-input+ ; summary
   "dd" 'my-lookup-dict-org
-  "mm" 'lookup-doc-in-man
-  "gg" 'w3m-google-search
-  "gd" 'w3m-search-financial-dictionary
-  "ga" 'w3m-java-search
-  "gh" 'w3mext-hacker-search ; code search in all engines with firefox
-  "gq" 'w3m-stackoverflow-search)
+  "mm" 'my-lookup-doc-in-man
+  "gg" 'my-w3m-generic-search
+  "gd" 'my-w3m-search-financial-dictionary
+  "gh" 'my-w3m-hacker-search ; code search in all engines with firefox
+  "gq" 'my-w3m-stackoverflow-search)
 ;; }}
 
 ;; {{ remember what we searched
@@ -824,7 +853,8 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
                       (message "%s => clipboard & yank ring" item))))
 
 (defun my-cc-isearch-string (&rest args)
-  "Add `isearch-string' inot history."
+  "Add `isearch-string' into history.  ARGS is ignored."
+  (ignore args)
   (and isearch-string
        (> (length isearch-string) 0)
        (push isearch-string my-search-text-history)))
@@ -833,16 +863,25 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
 (advice-add 'evil-visualstar/begin-search :after #'my-cc-isearch-string)
 ;; }}
 
-;; {{ change mode-line color by evil state
+;; {{ change modeline color by evil&ime state
 (defconst my-default-color (cons (face-background 'mode-line)
                                  (face-foreground 'mode-line)))
+
 (defun my-show-evil-state ()
-  "Change mode line color to notify user evil current state."
-  (let* ((color (cond ((minibufferp) my-default-color)
-                      ((evil-insert-state-p) '("#e80000" . "#ffffff"))
-                      ((evil-emacs-state-p)  '("#444488" . "#ffffff"))
-                      ((buffer-modified-p)   '("#006fa0" . "#ffffff"))
-                      (t my-default-color))))
+  "Change modeline color to notify user evil current state."
+  (let ((color (cond
+                ((minibufferp)
+                 my-default-color)
+                (current-input-method
+                 '("#e80074" . "#ffffff"))
+                ((evil-insert-state-p)
+                 '("#e80000" . "#ffffff"))
+                ((evil-emacs-state-p)
+                 '("#444488" . "#ffffff"))
+                ((buffer-modified-p)
+                 '("#006fa0" . "#ffffff"))
+                (t
+                 my-default-color))))
     (set-face-background 'mode-line (car color))
     (set-face-foreground 'mode-line (cdr color))))
 (add-hook 'post-command-hook #'my-show-evil-state)
@@ -855,15 +894,14 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
 (define-key evil-motion-state-map "gy" 'evilnc-yank-and-comment-operator)
 
 (defun my-current-line-html-p (paragraph-region)
-  "Is current line html?"
+  "Test if current line in PARAGRAPH-REGION is html."
   (let* ((line (buffer-substring-no-properties (line-beginning-position)
                                                (line-end-position)))
          (re (format "^[ \t]*\\(%s\\)?[ \t]*</?[a-zA-Z]+"
-                     (regexp-quote evilnc-html-comment-start))))
+                     (regexp-quote (evilnc-html-comment-start)))))
     ;; current paragraph does contain html tag
-    (if (and (>= (point) (car paragraph-region))
-             (string-match-p re line))
-        t)))
+    (and (>= (point) (car paragraph-region))
+             (string-match re line))))
 
 (defun my-evilnc-comment-or-uncomment-paragraphs (&optional num)
   "Comment or uncomment NUM paragraphs which might contain html tags."
@@ -923,18 +961,16 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
 ;;     :timeout 0.3
 ;;     "g" 'my-counsel-company))
 
-(defun my-switch-to-shell ()
-  "Switch to built in or 3rd party shell."
-  (interactive)
-  (cond
-   ((display-graphic-p)
-    (switch-to-builtin-shell))
-   (t
-    (suspend-frame))))
-
 ;; press ",xx" to expand region
 ;; then press "char" to contract, "x" to expand
 (with-eval-after-load 'evil
+
+  ;; replace undo-tree with undo-fu
+  ;; @see https://github.com/emacs-evil/evil/issues/1074
+  (setq evil-undo-system 'undo-redo)
+  (define-key evil-normal-state-map "u" 'undo-fu-only-undo)
+  (define-key evil-normal-state-map (kbd "C-r") 'undo-fu-only-redo)
+
   ;; initial evil state per major mode
   (dolist (p my-initial-evil-state-setup)
     (evil-set-initial-state (car p) (cdr p)))
@@ -1028,7 +1064,7 @@ If N > 0 and working on javascript, only occurrences in current N lines are rena
 
 ;; @see https://github.com/redguardtoo/emacs.d/issues/955
 ;; `evil-paste-after' => `current-kill' => `interprogram-paste-function'=> `gui-selection-value'
-;; `gui-selection-value' returns clipboard text from CLIPBOARD or "PRIMARY" clipboard which are
+;; `gui-selection-value' returns clipboard text from CLIPBOARD or "PRIMARY" which is
 ;; also controlled by `select-enable-clipboard' and `select-enable-primary'.
 ;; Please note `evil-visual-update-x-selection' automatically updates PRIMARY clipboard with
 ;; visual selection.

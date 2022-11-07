@@ -3,10 +3,10 @@
 [[https://github.com/redguardtoo/emacs.d/actions/workflows/test.yml][https://github.com/redguardtoo/emacs.d/actions/workflows/test.yml/badge.svg]]
 
 - Fast
-- Robust. Never crash after upgrading packages. Packages could be installed without network
-- Support Windows. Find&Grep files on Windows with minimum setup
-- Tested with Emacs 26.3, 27.1, 28 on Linux/Windows10/Cygwin/macOS/WSL(Windows Subsystem for Linux)
-- Emacs vanilla key bindings and directory layout is respected
+- Robust. Packages could be installed without network
+- Support Windows. Find&Grep needs only minimum setup on Windows
+- Tested with Emacs 27.2, 28.1 on Linux/Windows10/Cygwin/macOS/WSL(Windows Subsystem for Linux)
+- Vanilla key bindings and directory layout is respected
 - Works in [[https://packages.debian.org/emacs-nox][emacs-nox]] and [[http://www.putty.org/][PuTTY]]
 
 [[file:demo.png]]
@@ -15,8 +15,8 @@
 - [[#a-fast-and-robust-emacs-setup][A fast and robust Emacs setup]]
 - [[#checklist][Checklist]]
 - [[#installation][Installation]]
-  - [[#install-in-normal-way][Install in normal way]]
-  - [[#install-stable-version-optional][Install stable version (OPTIONAL)]]
+  - [[#install-packages-from-remote-repository-recommended][Install packages from remote repository (RECOMMENDED)]]
+  - [[#install-packages-from-stable-local-repository-optional][Install packages from stable local repository (OPTIONAL)]]
   - [[#install-everything-in-one-step-optional][Install everything in one step (OPTIONAL)]]
   - [[#third-party-programs-optional][Third party programs (OPTIONAL)]]
 - [[#tutorial-optional][Tutorial (OPTIONAL)]]
@@ -79,6 +79,7 @@
   - [[#enable-typewriter-sounds-when-typing][Enable typewriter sounds when typing]]
   - [[#pdf-tools][pdf-tools]]
 - [[#support-legacy-emacs-versions][Support legacy Emacs versions]]
+  - [[#emacs-26][Emacs 26]]
   - [[#emacs-25][Emacs 25]]
   - [[#emacs-244-and-245][Emacs 24.4 and 24.5]]
   - [[#emacs-243][Emacs 24.3]]
@@ -88,22 +89,22 @@
 - [[#license][License]]
 
 * Checklist
-- Emacs 26.1 or higher version is required
+- Emacs 27 or higher version is required
 - Please read FAQ to disable [[http://www.vim.org][Vim]] key bindings
 - Please read section "Key bindings" to learn key bindings
-- Windows users had better download the version all the optional dependencies). For example, download "emacs-26.3-x86_64.zip" instead of "emacs-26.2-x86_64-no-deps.zip"
-- Most packages from [[http://melpa.org][MELPA]] are *invisible* but packages from [[https://stable.melpa.org][MELPA Stable]] are visible. Please modify variable =melpa-include-packages= in =lisp/init-elpa.el= to install unstable packages
+- Windows users had better download the version with dependencies bundled. For example, download "emacs-27.2-x86_64.zip" instead of "emacs-27.2-x86_64-no-deps.zip"
+- Unstable packages from [[http://melpa.org][MELPA]] are *invisible* but stable packages from [[https://stable.melpa.org][MELPA Stable]] are visible. Please modify variable =melpa-include-packages= in =lisp/init-elpa.el= to install unstable packages
 - Other issues are covered in FAQ
 * Installation
 Please remove =~/.emacs= first. =~= means [[https://en.wikipedia.org/wiki/Home_directory][Home directory]].
 
-Most users should follow the section "Install in normal way".
+Most users need follow the section "Install in normal way".
 
 Section "Install stable version" is useful *if and only if*,
 - You don't have network access
 - You have never used any command line program
 
-** Install in normal way
+** Install packages from remote repository (RECOMMENDED)
 There are two ways to install this setup (I recommend the first way):
 
 First way is to download [[https://github.com/redguardtoo/emacs.d/archive/master.zip][latest setup]] and extract its content into =~/.emacs.d=, OR run command =cd ~; git clone https://github.com/redguardtoo/emacs.d.git .emacs.d= in shell.
@@ -115,7 +116,7 @@ By default, packages are installed automatically during Emacs startup.
 Someone reported that package repository [[http://melpa.org]] is not responsive in China.
 
 No worries. You could answer "YES" to the question "Switch to faster package repositories in China temporarily?" after firing Emacs. Please note after startup you could change variable =package-archives= in =init-elpa.el= to permanently switch to Chinese repositories.
-** Install stable version (OPTIONAL)
+** Install packages from stable local repository (OPTIONAL)
 - Download [[https://github.com/redguardtoo/emacs.d/archive/stable.zip]]
 - Extract its content into empty directory =~/.emacs.d=
 - Download [[https://github.com/redguardtoo/myelpa/archive/stable.zip]]
@@ -197,8 +198,8 @@ But my =w3m= based utilities can open video/audio/image with the help of =w3m=.
 - Beautify javascript code
 - Install [[http://pip.readthedocs.org/en/stable/installing/][pip]] through OS package manager, then =pip install jsbeautifier=
 **** sdcv (console version of StarDict)
-- Required by =sdcv.e=
-- Run =curl http://pkgs.fedoraproject.org/repo/pkgs/stardict-dic/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2/f164dcb24b1084e1cfa2b1cb63d590e6/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic= to install dictionary
+- Required by =sdcv.el=
+- Run =curl http://pkgs.fedoraproject.org/repo/pkgs/stardict-dic/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2/f164dcb24b1084e1cfa2b1cb63d590e6/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic= and =curl https://src.fedoraproject.org/repo/pkgs/stardict-dic/stardict-langdao-ec-gb-2.4.2.tar.bz2/41a71f5b3952709746dd7e52cf155b8b/stardict-langdao-ec-gb-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic= to install English dictionaries
 **** [[https://github.com/BurntSushi/ripgrep][ripgrep]]
 - Optionally used by =M-x counsel-etags-grep= to search text in files
 - Run =curl https://sh.rustup.rs -sSf | sh= in shell to install [[https://www.rust-lang.org/][Rust]] then =cargo install ripgrep=
@@ -218,7 +219,7 @@ Grammar, Style and Spell Checker
 **** [[https://mkvtoolnix.download/][mkvtoolnix]]
 - Used by hydra in dired buffer
 * Tutorial (OPTIONAL)
-Knowledge of Linux/Unix is required. At least you should know the meanings of "environment variable", "shell", "stdin", "stdout", "man", "info".
+Knowledge of Linux/Unix is required. At least you need know the meanings of "environment variable", "shell", "stdin", "stdout", "man", "info".
 ** Tutorial
 Please read this tutorial at least for once.
 *** Step 1, learn basics
@@ -292,14 +293,14 @@ Besides, "[[http://blog.binchen.org/posts/how-to-be-extremely-efficient-in-emacs
 Press =kj= to escape from =evil-insert-state= and everything else in Emacs. It's much more efficient than =ESC= in Vim or =C-g= in Emacs. Search =evil-escape= in =init-evil.el= for details.
 * FAQ
 ** Computers with smaller memory
-Make sure you have this line in =early-init.el= (Emacs 27.1+) or at the beginning of =init.el= (Emacs 26),
+Make sure you have this line in =early-init.el= or at the beginning of =init.el=,
 #+begin_src elisp
 (setq my-computer-has-smaller-memory-p t)
 #+end_src
 ** Vim vs Emacs
-I prefer default hotkeys&commands from EVIL and Emacs.
+I prefer vim keybindings provided by EVIL.
 
-But sometimes a mixed style could be better for my personal workflow. See the function =my-optimize-evil= in =init-evil.el=.
+But mixed style is also used in my workflow. See the function =my-optimize-evil= in =init-evil.el=.
 
 You can insert =(my-optimize-evil)= into =~/.custom.el= to enable it.
 ** Backup packages
@@ -367,7 +368,7 @@ If you select a region inside current line, the *correct commit which submits th
 ** Use this configuration as merge tool for Git
 This configuration might be the most efficient and most powerful merge tool for VCS.
 Insert below configuration into =~/.gitconfig=,
-#+begin_src javascript
+#+begin_src js
 [mergetool.ediff]
 # use git mergetool ediff to resolve conflicts
 cmd = emacs -nw -Q --eval \"(setq startup-now t)\" -l \"~/.emacs.d/init.el\" --eval \"(progn (setq ediff-quit-hook 'kill-emacs) (if (file-readable-p \\\"$BASE\\\") (ediff-merge-files-with-ancestor \\\"$LOCAL\\\" \\\"$REMOTE\\\" \\\"$BASE\\\" nil \\\"$MERGED\\\") (ediff-merge-files \\\"$LOCAL\\\" \\\"$REMOTE\\\" nil \\\"$MERGED\\\")))\"
@@ -429,6 +430,14 @@ For languages GNU Global doesn't support, you can fall back to =company-ctags= a
 
 You can also complete line by =M-x eacl-complete-line= and complete multi-lines statement by =M-x eacl-complete-multiline=.
 ** Color theme
+*** Auto load classic color theme
+Add below code to =~/.custom.el= to load a random classic dark color theme during startup,
+#+begin_src elisp
+(setq my-enable-startup-color-theme-p t)
+#+end_src
+
+If you prefer using your own color theme, you don't need above line.
+
 *** Preview color theme
 Check [[https://emacsthemes.com/]].
 
@@ -632,8 +641,11 @@ The default pinyin scheme is =quanpin= but you can insert below code into =~/.cu
 Dictionary for wubi is already installed. Please insert below code into =~/.custom.el= to enable wubi dictionary and use wubi scheme,
 #+begin_src elisp
 (setq my-pyim-enable-wubi-dict t)
-(with-eval-after-load 'pyim
-  (setq pyim-default-scheme 'wubi))
+;; ;; @see https://github.com/tumashu/pyim-wbdict for more information
+;; (setq my-pyim-enable-wubi-dict pyim-wbdict-v86-enable)
+;; (setq my-pyim-enable-wubi-dict pyim-wbdict-v98-enable)
+;; (setq my-pyim-enable-wubi-dict pyim-wbdict-v98-morphe-enable)
+;; (setq my-pyim-enable-wubi-dict pyim-wbdict-v86-single-enable)
 #+end_src
 ** Install multiple versions of Emacs
 Run below commands to install Emacs 26.3 into the directory =~/myemacs/26.3=:
@@ -671,52 +683,32 @@ On macOS/Linux/Cygwin, run =make githooks= to install hooks into =.git/hooks=.
 
 Then unit test is run automatically before =git commit=.
 ** Python environment
-We use [[https://github.com/jorgenschaefer/elpy][Elpy (Emacs Python Development Environment)]]. See its official documentation on its usage.
+[[https://github.com/jorgenschaefer/elpy][Elpy (Emacs Python Development Environment)]] is used.
 
 The flag =elpy-disable-backend-error-display= is set to =nil= so you can easily report any error to its developers.
 
-If you don't use Elpy, please set this flag to =t=.
+If you don't use Elpy, comment out the line =(elpy-enable)= in =init-python.el=.
 
-To enable the virtual environment created by Elpy as its official guide has suggested, you can add below code into =~/.custom.el=,
+To enable the virtual environment created by Elpy, add below code into =~/.custom.el=,
 #+begin_src elisp
 (with-eval-after-load 'elpy
-  (let ((venv-dir "~/.emacs.d/elpy/rpc-venv"))
-    (if (file-exists-p venv-dir) (pyvenv-activate venv-dir))))
+  (let* ((venv-dir "~/.emacs.d/elpy/rpc-venv"))
+    (when (and (file-exists-p venv-dir)
+               (executable-find pyvenv-virtualenvwrapper-python))
+      (pyvenv-activate venv-dir))))
 #+end_src
 
-After activating the virtual environment created by Elpy, you could also backup its required packages,
+After activating the virtual environment created by Elpy, you could backup its required packages,
 #+begin_src sh
 source ~/.emacs.d/elpy/rpc-venv/bin/activate && pip freeze > elpy-requirements.txt && deactivate
 #+end_src
 
-Then restore the packages,
+Restore the packages,
 #+begin_src sh
 source ~/.emacs.d/elpy/rpc-venv/bin/activate && pip install -r elpy-requirements.txt && deactivate
 #+end_src
 
-My =elpy-requirements.txt= (Python 3.9.1),
-#+begin_example
-appdirs==1.4.4
-autopep8==1.5.4
-black==20.8b1
-click==7.1.2
-flake8==3.8.4
-jedi==0.18.0
-mccabe==0.6.1
-mypy-extensions==0.4.3
-parso==0.8.1
-pathspec==0.8.1
-pycodestyle==2.6.0
-pyflakes==2.2.0
-regex==2020.11.13
-rope==0.18.0
-toml==0.10.2
-typed-ast==1.4.1
-typing-extensions==3.7.4.3
-yapf==0.30.0
-#+end_example
-
-After above setup, you can run =M-x elpy-config= to double check elpy status.
+Then run =M-x elpy-config= to double check elpy status and install any missing python package.
 
 You might want to modify =include-system-site-packages= in =~/.emacs.d/elpy/rpc-venv/pyvenv.cfg=
 ** Set up [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]
@@ -769,6 +761,10 @@ Here is my setup in =~/.custom.el=,
      (pdf-loader-install))))
 #+end_src
 * Support legacy Emacs versions
+** Emacs 26
+Version 4.0 is the last version to support =Emacs 26=
+Please use [[https://github.com/redguardtoo/emacs.d/archive/4.0.zip]] and [[https://github.com/redguardtoo/myelpa/archive/4.0.zip]].
+
 ** Emacs 25
 Version 3.2 is the last version to support =Emacs 25=
 
@@ -809,7 +805,7 @@ Send error messages to the original developer if it's third party package's prob
 
 If *you are sure* it's this my bug, file report at [[https://github.com/redguardtoo/emacs.d]]. Don't email me!
 
-Bug report should include *environment details*.
+Bug report need include *environment details*.
 * License
 This program is free software: you can redistribute it and/or modify it under the terms of the [[file:LICENSE][GNU General Public License]] as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
