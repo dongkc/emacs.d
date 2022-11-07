@@ -182,16 +182,16 @@
         ;; is slow or shutdown.
 
         ;; {{ Option 1: 163 mirror repository:
-        ("gnu" . "https://mirrors.163.com/elpa/gnu/")
-        ("melpa" . "https://mirrors.163.com/elpa/melpa/")
-        ("melpa-stable" . "https://mirrors.163.com/elpa/stable-melpa/")
+        ;; ("gnu" . "https://mirrors.163.com/elpa/gnu/")
+        ;; ("melpa" . "https://mirrors.163.com/elpa/melpa/")
+        ;; ("melpa-stable" . "https://mirrors.163.com/elpa/stable-melpa/")
         ;; }}
 
         ;; ;; {{ Option 2: tsinghua mirror repository
         ;; ;; @see https://mirror.tuna.tsinghua.edu.cn/help/elpa/ on usage:
-        ;; ;; ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
-        ;; ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
-        ;; ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/stable-melpa/")
+        ("gnu"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+        ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
+        ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/stable-melpa/")
         ;; }}
 
         ;; ("melpa" . "https://melpa.org/packages/")
@@ -199,14 +199,14 @@
         ))
 
 (defvar my-ask-elpa-mirror t)
-(when (and (not noninteractive) ; no popup in batch mode
-           my-ask-elpa-mirror
-           (not (file-exists-p (file-truename (concat my-emacs-d "elpa"))))
-           (yes-or-no-p "Switch to faster package repositories in China temporarily?
-You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
-  (setq package-archives
-        '(("melpa" . "https://mirrors.163.com/elpa/melpa/")
-          ("melpa-stable" . "https://mirrors.163.com/elpa/stable-melpa/"))))
+;; (when (and (not noninteractive) ; no popup in batch mode
+;;            my-ask-elpa-mirror
+;;            (not (file-exists-p (file-truename (concat my-emacs-d "elpa"))))
+;;            (yes-or-no-p "Switch to faster package repositories in China temporarily?
+;; You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
+;;   (setq package-archives
+;;         '(("melpa" . "https://mirrors.163.com/elpa/melpa/")
+;;           ("melpa-stable" . "https://mirrors.163.com/elpa/stable-melpa/"))))
 
 ;; Un-comment below line if you follow "Install stable version in easiest way"
 ;; (setq package-archives '(("myelpa" . "~/myelpa/")))
@@ -448,7 +448,6 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
     color-theme-sanityinc-tomorrow
     cyberpunk-theme
     dakrone-theme
-    darkburn-theme
     darkmine-theme
     darkokai-theme
     darktooth-theme
@@ -459,7 +458,6 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
     exotica-theme
     eziam-theme
     fantom-theme
-    farmhouse-theme
     flatland-theme
     flatui-theme
     gandalf-theme
