@@ -28,8 +28,8 @@
 ;; set the fall-back font
 ;; this is critical for displaying various unicode symbols, such as those used in my init-org.el settings
 ;; http://endlessparentheses.com/manually-choose-a-fallback-font-for-unicode.html
-(set-fontset-font "fontset-default" nil
-                  (font-spec :size 20 :name "Symbola"))
+;; (set-fontset-font "fontset-default" nil
+;;                  (font-spec :size 18 :name "Symbola"))
 
 ;; for sciter tiscript file extension
 (add-to-list 'auto-mode-alist '("\\.tis\\'" . js2-mode))
@@ -66,33 +66,36 @@
 
 (use-package lsp-mode
   :ensure t
-  :init (setq lsp-keymap-prefix "s-l"
+  :init (setq lsp-keymap-prefix "C-l"
               lsp-prefer-flymake nil)
+  :config
+  (define-key lsp-mode-map (kbd "C-l") lsp-command-map)
   :commands (lsp make-lsp-client lsp-register-client)
   :hook (lsp-mode . lsp-enable-which-key-integration))
 
-(use-package lsp-ui
-  :ensure t
-  :init (setq lsp-ui-flycheck-enable t)
-  :commands lsp-ui-mode)
 
-(use-package lsp-dart
-  :ensure t
-  :hook (dart-mode . lsp))
+;; (use-package lsp-ui
+;;   :ensure t
+;;   :init (setq lsp-ui-flycheck-enable t)
+;;   :commands lsp-ui-mode)
+
+;; (use-package lsp-dart
+;;   :ensure t
+;;   :hook (dart-mode . lsp))
 
 ;; Optional packages
-(use-package projectile :ensure t) ;; project management
-(use-package lsp-ui :ensure t) ;; UI for LSP
-(use-package company :ensure t) ;; Auto-complete
+;; (use-package projectile :ensure t) ;; project management
+;; (use-package lsp-ui :ensure t) ;; UI for LSP
+;; (use-package company :ensure t) ;; Auto-complete
 
 ;; Optional Flutter packages
-(use-package hover :ensure t) ;; run app from desktop without emulator
+;; (use-package hover :ensure t) ;; run app from desktop without emulator
 
-(use-package dap-mode
-  :ensure t :after lsp-mode
-  :config
-  (dap-mode t)
-  (dap-ui-mode t))
+;; (use-package dap-mode
+;;   :ensure t :after lsp-mode
+;;   :config
+;;   (dap-mode t)
+;;   (dap-ui-mode t))
 
 (setq browse-url-generic-program "chrome")
 
