@@ -96,6 +96,7 @@
   ;; Any file use flyspell should be initialized after init-spelling.el
   (require-init 'init-spelling t)
   (require-init 'init-ibuffer t)
+  (require-init 'init-bookmark)
   (require-init 'init-ivy)
   (require-init 'init-windows)
   (require-init 'init-javascript t)
@@ -130,15 +131,17 @@
   (require-init 'init-essential)
   ;; tools nice to have
   (require-init 'init-misc t)
+  (require-init 'init-dictionary t)
   (require-init 'init-emms t)
 
-  (require-init 'init-emacs-w3m t)
+  (require-init 'init-browser t)
   (require-init 'init-shackle t)
   (require-init 'init-dired t)
   (require-init 'init-writting t)
   (require-init 'init-hydra) ; hotkey is required everywhere
   ;; use evil mode (vi key binding)
   (require-init 'init-evil) ; init-evil dependent on init-clipboard
+  (require-init 'init-pdf)
 
   ;; ediff configuration should be last so it can override
   ;; the key bindings in previous configuration

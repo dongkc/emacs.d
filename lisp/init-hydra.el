@@ -8,26 +8,28 @@
   "
 ^Misc^                    ^Study^                    ^Emms^
 -------------------------------------------------------------------
-[_ss_] Save workgroup     [_w_] Pronounce word       [_R_] Random
-[_ll_] Load workgroup     [_W_] Big words definition [_n_] Next
-[_B_] New bookmark        [_v_] Play big word video  [_p_] Previous
+[_ss_] Save workgroup     [_vv_] Pronounce word      [_R_] Random
+[_ll_] Load workgroup     [_W_] Big word list        [_n_] Next
+[_B_] New bookmark        [_vi_] Play word's video   [_p_] Previous
 [_m_] Goto bookmark       [_im_] Image of word       [_P_] Pause
-[_bb_] Switch Gnus buffer [_s1_] Pomodoro tiny task  [_S_] Stop
-[_e_] Erase buffer        [_s2_] Pomodoro big task   [_O_] Open
-[_r_] Erase this buffer   [_st_] Pomodoro stop       [_L_] Playlist
-[_f_] Recent file         [_sr_] Pomodoro resume     [_K_] Search
-[_d_] Recent directory    [_sp_] Pomodoro pause      [_F_] filter
-[_z_] Jump around (z.sh)  [_as_] Ascii table         [_E_] replay
-[_bh_] Bash history       [_E_] Typewriter on/off
-[_hh_] Favorite theme     [_V_] Old typewriter
-[_hr_] Random theme
+[_bb_] Switch Gnus buffer [_w_] Select big word      [_S_] Stop
+[_e_] Erase buffer        [_s1_] Pomodoro tiny task  [_O_] Open
+[_r_] Erase this buffer   [_s2_] Pomodoro big task   [_L_] Playlist
+[_f_] Recent file         [_st_] Pomodoro stop       [_K_] Search
+[_d_] Recent directory    [_sr_] Pomodoro resume     [_F_] filter
+[_z_] Jump around (z.sh)  [_sp_] Pomodoro pause      [_E_] replay
+[_bh_] Bash history       [_as_] Ascii table
+[_hh_] Favorite theme     [_T_] Typewriter on/off
+[_hr_] Random theme       [_V_] Old typewriter
 [_ka_] Kill other buffers
 [_ii_] Imenu
 [_id_] Insert date string
+[_aa_] Adjust subtitle
 [_q_] Quit
 "
-  ("B" bookmark-set)
-  ("m" counsel-bookmark-goto)
+  ("aa" my-srt-offset-subtitles-from-point)
+  ("B" my-bookmark-set)
+  ("m" my-bookmark-goto)
   ("f" my-counsel-recentf)
   ("d" my-recent-directory)
   ("bh" my-insert-bash-history)
@@ -42,7 +44,7 @@
   ("e" shellcop-erase-buffer)
   ("r" shellcop-reset-with-new-command)
   ("z" shellcop-jump-around)
-  ("E" my-toggle-typewriter)
+  ("T" my-toggle-typewriter)
   ("V" twm/toggle-sound-style)
 
   ;; {{pomodoro
@@ -66,10 +68,11 @@
   ("L" emms-playlist-mode-go)
   ;; }}
 
-  ("w" mybigword-pronounce-word)
+  ("vv" mybigword-pronounce-word)
+  ("w" mybigword-big-words-in-current-window)
   ("im" mybigword-show-image-of-word)
   ("W" my-lookup-bigword-definition-in-buffer)
-  ("v" mybigword-play-video-of-word-at-point)
+  ("vi" mybigword-play-video-of-word-at-point)
   ("bb" dianyou-switch-gnus-buffer)
   ("q" nil :color red))
 
@@ -138,7 +141,7 @@
 [_d_] CLI to download stream [_R_] Reply with original
 [_b_] Open external browser  [_w_] Reply all (S w)
 [_;_] Click link/button      [_W_] Reply all with original (S W)
-[_g_] Focus link/button      [_b_] Switch Gnus buffer
+[_b_] Switch Gnus buffer
 "
     ("F" gnus-summary-mail-forward)
     ("r" gnus-summary-reply)
@@ -146,11 +149,10 @@
     ("w" gnus-summary-wide-reply)
     ("W" gnus-article-wide-reply-with-original)
     ("o" (lambda () (interactive) (let* ((file (gnus-mime-save-part))) (when file (copy-yank-str file)))))
-    ("v" my-w3m-open-with-mplayer)
-    ("d" my-w3m-download-rss-stream)
-    ("b" my-w3m-open-link-or-image-or-url)
-    (";" w3m-lnum-follow)
-    ("g" w3m-lnum-goto)
+    ("v" my-browser-open-with-mplayer)
+    ("d" my-browser-download-rss-stream)
+    ("b" my-browser-open-link-or-image-or-url)
+    (";" eww-lnum-follow)
     ("b" dianyou-switch-gnus-buffer)
     ("q" nil))
   ;; y is not used by default
@@ -280,8 +282,12 @@
                         (concat base "." (if (string= ext "mp3") "wav" "mp3")))))
       (my-async-shell-command cmd)))
   (defun my-copy-file-info (fn)
-    (message "%s => clipboard & yank ring"
-             (copy-yank-str (funcall fn (dired-file-name-at-point)))))
+    "Copy file or directory info."
+    (let* ((file-name (dired-file-name-at-point)))
+      (when (file-directory-p file-name)
+        (setq file-name (directory-file-name file-name)))
+      (message "%s => clipboard & yank ring"
+               (copy-yank-str (funcall fn file-name)))))
   (defhydra my-hydra-dired (:color blue)
     "
 ^Misc^                      ^File^              ^Copy Info^
@@ -293,7 +299,7 @@
 [_se_] Extract subtitle    [_rb_] Change base
 [_aa_] Recording Wav       [_df_] Diff 2 files
 [_ee_] Mkv => Srt          [_ff_] Find
-[_+_] Create directory
+[_+_] Create directory     [_du_] File usage
 [_mp_] Mplayer extra opts
 "
     ("mp" my-mplayer-setup-extra-opts)
@@ -311,6 +317,7 @@
     ("C" dired-do-copy)
     ("R" dired-do-rename)
     ("cf" find-file)
+    ("du" my-file-usage)
     ("df" my-ediff-files)
     ("rr" dired-toggle-read-only)
     ("ff" (lambda (regexp)
@@ -463,6 +470,7 @@ Git:
   ("ri" my-git-rebase-interactive)
   ("rr" my-git-gutter-reset-to-default)
   ("rh" my-git-gutter-reset-to-head-parent)
+  ("cb" my-git-current-branch)
   ("s" my-git-show-commit)
   ("l" magit-log-buffer-file)
   ("b" magit-show-refs)
@@ -475,9 +483,9 @@ Git:
   ("dr" (magit-diff-range (my-git-commit-id)))
   ("cc" magit-commit-create)
   ("ca" magit-commit-amend)
-  ("nn" my-commit-create)
-  ("na" my-commit-amend)
-  ("ja" (my-commit-amend t))
+  ("nn" my-git-commit-create)
+  ("na" my-git-commit-amend)
+  ("ja" (my-git-commit-amend t))
   ("au" magit-stage-modified)
   ("Q" my-git-gutter-toggle)
   ("f" my-git-find-file-in-commit)
@@ -486,23 +494,27 @@ Git:
 (global-set-key (kbd "C-c C-g") 'my-hydra-git/body)
 ;; }}
 
+(defhydra my-hydra-ebook ()
+  "
+[_v_] Pronounce word
+[_;_] Jump to word
+[_w_] Display bigword in current window
+"
+  ("v" mybigword-pronounce-word)
+  (";" avy-goto-char-2)
+  ("w" mybigword-big-words-in-current-window)
+  ("q" nil))
+
 (defhydra my-hydra-search ()
   "
- ^Search^         ^Dictionary^
------------------------------------------
-_g_ Google        _b_ English => English
-_f_ Finance       _t_ English => Chinese
-_s_ StackOverflow _d_ dict.org
-_h_ Code
+_b_ English => English
+_t_ English => Chinese
+_d_ dict.org
 _m_ Man
 "
-  ("b" sdcv-search-input)
-  ("t" sdcv-search-input+)
+  ("b" my-dict-complete-definition)
+  ("t" my-dict-simple-definition)
   ("d" my-lookup-dict-org)
-  ("g" my-w3m-generic-search)
-  ("f" my-w3m-search-financial-dictionary)
-  ("s" my-w3m-stackoverflow-search)
-  ("h" my-w3m-hacker-search)
   ("m" my-lookup-doc-in-man)
   ("q" nil))
 (global-set-key (kbd "C-c C-s") 'my-hydra-search/body)

@@ -16,6 +16,10 @@ If no files marked, always operate on current line in dired-mode."
   (dired-do-shell-command command arg file-list)
   (message command))
 
+(defun my-file-usage ()
+  (interactive)
+  (message (shell-command-to-string "du -kh")))
+
 (defun my-ediff-files ()
   "@see https://oremacs.com/2017/03/18/dired-ediff/."
   (interactive)
@@ -164,9 +168,7 @@ If N is not nil, only list directories in current project."
     (dired (completing-read "Directories: " cands))))
 
 (with-eval-after-load 'dired
-  ;; re-use dired buffer, available in Emacs 28
-  ;; @see https://debbugs.gnu.org/cgi/bugreport.cgi?bug=20598
-  (setq dired-kill-when-opening-new-dired-buffer t)
+  (setq dired-kill-when-opening-new-dired-buffer nil)
 
   ;; search file name only when focus is over file
   (setq dired-isearch-filenames 'dwim)
@@ -288,6 +290,7 @@ If SEARCH-IN-DIR is t, try to find the subtitle by searching in directory."
       (ignore command)
       (ignore arg)
       (cond
+       ;; play dvd directory
        ((file-directory-p first-file)
         (async-shell-command (format "%s -dvd-device %s dvd://1 dvd://2 dvd://3 dvd://4 dvd://1 dvd://5 dvd://6 dvd://7 dvd://8 dvd://9"
                                      (my-guess-mplayer-path)
